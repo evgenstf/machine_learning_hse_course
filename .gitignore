@@ -1,3 +1,5 @@
+__pycache__
 latte
 build
 .ipynb_checkpoints
+.DS_Store
