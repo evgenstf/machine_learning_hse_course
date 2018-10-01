@@ -2,24 +2,24 @@ import pandas as pd
 import numpy as np
 import math
 import sys
+import sklearn.preprocessing as pr
+from sklearn.model_selection import train_test_split
 
 class DataProvider(object):
     def __init__(self):
         self.x_raw = pd.DataFrame(np.load('../data/raw/x_train.npy'))
         self.y_raw = pd.DataFrame(np.load('../data/raw/y_train.npy'))
-        self.x_test = pd.DataFrame(np.load('../data/raw/x_test.npy'))
+        self.x_control_test = pd.DataFrame(np.load('../data/raw/x_test.npy'))
 
-    def processed_x_train(self):
-        return self.process_x(self.x_raw)
+        self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(
+                self.x_raw, self.y_raw, train_size=0.5, random_state=42
+        )
 
-    def processed_x_test(self):
-        return self.process_x(self.x_test)
-
-    def processed_y(self):
-        y_raw = self.y_raw
-        result = y_raw.copy()
-        result = np.log2(y_raw)
-        return result
+        self.x_train = self.process_x(self.x_train)
+        self.x_test = self.process_x(self.x_test)
+        self.x_control_test = self.process_x(self.x_control_test)
+        self.y_train = self.process_y(self.y_train)
+        self.y_test = self.process_y(self.y_test)
 
     def process_x(self, x_raw):
         result = x_raw.copy()
@@ -47,7 +47,12 @@ class DataProvider(object):
         for zipcode in zipcodes:
             result[str(zipcode) + 'code'] = x_raw['zipcode'] == zipcode
 
-        result = result.drop(columns=['date', 'long', 'sqft_lot', 'floors', 'zipcode'])
+        #result = result.drop(columns=['date', 'long', 'sqft_lot', 'floors', 'zipcode'])
+        return result
+
+    def process_y(self, y_raw):
+        result = y_raw.copy()
+        result = np.log2(y_raw)
         return result
 
     def revert_y(self, y_processed):
