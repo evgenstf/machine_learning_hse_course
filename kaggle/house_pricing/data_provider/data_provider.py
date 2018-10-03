@@ -69,6 +69,13 @@ class DataProvider(object):
         for condition in conditions:
             result[str(condition) + 'condition'] = x_raw['condition'] == condition
 
+        bedrooms = []
+        for bedroom in x_raw["bedrooms"]:
+            bedrooms.append(bedroom)
+        bedrooms = np.unique(bedrooms)
+        for bedroom in bedrooms:
+            result[str(bedroom) + 'bedrooms'] = x_raw['bedrooms'] == bedroom
+
         zipcodes = []
         for zipcode in x_raw["zipcode"]:
             zipcodes.append(zipcode)
