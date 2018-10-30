@@ -3,7 +3,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 import logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 
 def draw_pair_plot(x_data, y_data):
