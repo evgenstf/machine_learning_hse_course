@@ -2,6 +2,10 @@ import json
 import warnings
 warnings.filterwarnings("ignore")
 
+import logging
+logging.basicConfig(level=logging.INFO)
+
+
 def draw_pair_plot(x_data, y_data):
     ncol, nrow = 7, x_data.shape[1] // 7 + (x_data.shape[1] % 7 > 0)
     plt.figure(figsize=(ncol * 4, nrow * 4))

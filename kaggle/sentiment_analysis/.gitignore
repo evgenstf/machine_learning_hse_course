@@ -2,3 +2,5 @@ x_test.*
 y_test.*
 x_train.*
 y_train.*
+random_prediction.*
+__pycache__
