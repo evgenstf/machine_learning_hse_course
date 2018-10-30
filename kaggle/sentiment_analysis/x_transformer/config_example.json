@@ -1,5 +1,5 @@
 {
-  "data_processor": {
+  "x_transformer": {
     "name": "dummy"
   }
 }

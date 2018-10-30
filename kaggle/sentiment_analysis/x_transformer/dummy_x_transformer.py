@@ -2,7 +2,7 @@ import sys
 sys.path.append("../../base")
 from common import *
 
-class DummyDataProcessor:
+class DummyXTransformer:
     def __init__(self, config):
-        self.name = "dummy_data_processor"
+        self.name = "dummy_x_transformer"
         self.config = config
