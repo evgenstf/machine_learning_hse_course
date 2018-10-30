@@ -4,5 +4,5 @@ from common import *
 
 class DummyXTransformer:
     def __init__(self, config):
-        self.name = "dummy_x_transformer"
+        self.name = "dummy"
         self.config = config

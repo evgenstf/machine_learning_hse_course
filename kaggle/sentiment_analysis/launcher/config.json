@@ -1,0 +1,13 @@
+{
+  "data_provider": {
+    "x_known": "../qdata/raw/x_train.txt",
+    "y_known": "../qdata/raw/y_train.csv",
+    "train_part": 0.05,
+    "x_to_predict": "../qdata/raw/x_test.txt"
+  },
+  "x_transformer": {
+    "name": "word_counter",
+    "min_word_len": 3,
+    "min_word_total_count": 100
+  }
+}
