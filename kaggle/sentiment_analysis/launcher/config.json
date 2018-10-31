@@ -2,12 +2,19 @@
   "data_provider": {
     "x_known": "../qdata/raw/x_train.txt",
     "y_known": "../qdata/raw/y_train.csv",
-    "train_part": 0.05,
-    "x_to_predict": "../qdata/raw/x_test.txt"
+    "x_to_predict": "../qdata/raw/x_test.txt",
+    "known_using_part" : 0.003,
+    "train_part": 0.9
   },
   "x_transformer": {
     "name": "word_counter",
-    "min_word_len": 3,
-    "min_word_total_count": 100
-  }
+    "min_word_len": 3
+  },
+  "model": {
+    "name": "word_weight",
+    "min_weight_abs": 0.1,
+    "min_word_total_count": 10,
+    "unknown_state_radius": 0.00
+  },
+  "answer_file": "answer.csv"
 }

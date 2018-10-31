@@ -1,3 +1,7 @@
+import sys
+sys.path.append("../../base")
+from common import *
+
 from dummy_x_transformer import *
 from word_counter_x_transformer import *
 

@@ -31,3 +31,14 @@ def mape_score(y_data, prediction):
     total = total * 100
     return total
 
+def ratio_score(y_expected, y_predicted):
+    right_count = 0
+    total_count = 0
+    for i in range(len(y_expected)):
+        if (y_predicted[i] != -1):
+            total_count += 1
+            if (y_expected[i] == y_predicted[i]):
+                right_count += 1
+    if (total_count == 0):
+        return -1
+    return right_count / total_count
