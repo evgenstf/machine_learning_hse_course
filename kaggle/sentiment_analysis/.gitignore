@@ -9,3 +9,5 @@ y_train.*
 random_prediction.*
 answer.csv
 __pycache__
+external
+*.txt

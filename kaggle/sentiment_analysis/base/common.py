@@ -34,7 +34,7 @@ def mape_score(y_data, prediction):
 def ratio_score(y_expected, y_predicted):
     right_count = 0
     total_count = 0
-    for i in range(len(y_expected)):
+    for i in range(len(y_predicted)):
         if (y_predicted[i] != -1):
             total_count += 1
             if (y_expected[i] == y_predicted[i]):

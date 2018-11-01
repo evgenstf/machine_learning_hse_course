@@ -48,16 +48,20 @@ class WordWeightModel:
                         abs(self.word_weights[word]) > self.min_weight_abs):
                     total_weight += self.word_weights[word] * count
                     trigger_words_count += 1
-            total_weight /= trigger_words_count
-            if total_weight > self.unknown_state_radius:
-                prediction.append(1)
-                positive_count += 1
-            elif total_weight < -self.unknown_state_radius:
-                prediction.append(0)
-                negative_count += 1
-            else:
+            if (trigger_words_count == 0):
                 prediction.append(-1)
                 unknown_count += 1
+            else:
+                total_weight /= trigger_words_count
+                if total_weight > self.unknown_state_radius:
+                    prediction.append(1)
+                    positive_count += 1
+                elif total_weight < -self.unknown_state_radius:
+                    prediction.append(0)
+                    negative_count += 1
+                else:
+                    prediction.append(-1)
+                    unknown_count += 1
             if (i % 10000 == 0):
                 self.log.debug("predicted line: {0}/{1}".format(i, len(x_to_predict)))
         self.log.info("predicted results: {0} positive {1} negative {2} unknown".format(
