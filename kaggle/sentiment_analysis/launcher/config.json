@@ -1,9 +1,9 @@
 {
   "data_provider": {
-    "x_known": "../qdata/raw/x_train.txt",
-    "y_known": "../qdata/raw/y_train.csv",
-    "x_to_predict": "../qdata/raw/x_test.txt",
-    "known_using_part" : 0.3,
+    "x_known": "../qdata/raw/head_x_train.txt",
+    "y_known": "../qdata/raw/head_y_train.csv",
+    "x_to_predict": "../qdata/raw/head_x_test.txt",
+    "known_using_part" : 0.00003,
     "train_part": 0.99
   },
   "x_transformer": {
@@ -11,6 +11,11 @@
     "min_word_len": 3
   },
   "model": {
+    "name": "sklearn_count_vectorizer",
+    "max_features_count": 100,
+    "ngram_range" : [1, 1]
+  },
+  "word_weight_model": {
     "name": "word_weight",
     "min_weight_abs": 0.8,
     "min_word_total_count": 5,

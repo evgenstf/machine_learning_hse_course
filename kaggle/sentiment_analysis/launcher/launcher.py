@@ -24,7 +24,10 @@ data_provider = DataProvider(config["data_provider"])
 x_transformer = x_transformer_by_config(config)
 model = model_by_config(config)
 
-model.load_train(x_transformer.transform(data_provider.x_train), data_provider.y_train)
+#model.load_train(x_transformer.transform(data_provider.x_train), data_provider.y_train)
+print(model.load_train(x_transformer.transform(data_provider.x_train), data_provider.y_train))
+
+exit()
 
 prediction = model.predict(x_transformer.transform(data_provider.x_to_predict))
 expected = pd.read_csv(config["magic"])["Probability"].tolist()
