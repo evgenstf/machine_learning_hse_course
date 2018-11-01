@@ -25,14 +25,20 @@ x_transformer = x_transformer_by_config(config)
 model = model_by_config(config)
 
 model.load_train(x_transformer.transform(data_provider.x_train), data_provider.y_train)
-"""
+
 prediction = model.predict(x_transformer.transform(data_provider.x_to_predict))
+expected = pd.read_csv(config["magic"])["Probability"].tolist()
+
+print(ratio_score(expected, prediction))
+
+
+wrong_predictions_file = open(config["wrong_predictions_file"], "w")
+for i in range(len(prediction)):
+    if prediction[i] != -1 and prediction[i] != expected[i]:
+        wrong_predictions_file.write("line: %s expected: %s predicted: %s text: %s\n" % (i + 2,
+            expected[i], prediction[i], data_provider.x_to_predict[i]))
 
 answer_file = open(config["answer_file"], "w")
 answer_file.write("Id,Probability\n")
 for i in range(len(prediction)):
     answer_file.write("%s,%s.0\n" % (i + 1, prediction[i]))
-"""
-
-prediction = model.predict(x_transformer.transform(data_provider.x_test))
-print("prediction score:", ratio_score(data_provider.y_test, prediction))

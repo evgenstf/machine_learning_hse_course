@@ -3,8 +3,8 @@
     "x_known": "../qdata/raw/x_train.txt",
     "y_known": "../qdata/raw/y_train.csv",
     "x_to_predict": "../qdata/raw/x_test.txt",
-    "known_using_part" : 0.003,
-    "train_part": 0.9
+    "known_using_part" : 0.3,
+    "train_part": 0.99
   },
   "x_transformer": {
     "name": "word_counter",
@@ -12,9 +12,11 @@
   },
   "model": {
     "name": "word_weight",
-    "min_weight_abs": 0.1,
-    "min_word_total_count": 10,
-    "unknown_state_radius": 0.00
+    "min_weight_abs": 0.8,
+    "min_word_total_count": 5,
+    "unknown_state_radius": 0.0
   },
-  "answer_file": "answer.csv"
+  "answer_file": "answer.csv",
+  "magic": "../qdata/external/magic.csv",
+  "wrong_predictions_file": "wrong_predictions.txt"
 }
