@@ -1,27 +1,32 @@
 {
-  "data_provider": {
+  "header_data_provider": {
     "x_known": "../qdata/raw/head_x_train.txt",
     "y_known": "../qdata/raw/head_y_train.csv",
     "x_to_predict": "../qdata/raw/head_x_test.txt",
-    "known_using_part" : 0.00003,
-    "train_part": 0.99
+    "known_using_part" : 1,
+    "train_part": 0.99999999999
+  },
+  "body_data_provider": {
+    "x_known": "../qdata/raw/head_x_train.txt",
+    "y_known": "../qdata/raw/head_y_train.csv",
+    "x_to_predict": "../qdata/raw/head_x_test.txt",
+    "known_using_part" : 0.1,
+    "train_part": 0.99999999999
   },
   "x_transformer": {
-    "name": "word_counter",
-    "min_word_len": 3
+    "name": "tfidf",
+    "min_df": 0.005,
+    "max_df": 1.0,
+    "ngram_range" : [1, 2]
   },
   "model": {
-    "name": "sklearn_count_vectorizer",
-    "max_features_count": 100,
-    "ngram_range" : [1, 1]
-  },
-  "word_weight_model": {
-    "name": "word_weight",
-    "min_weight_abs": 0.8,
-    "min_word_total_count": 5,
-    "unknown_state_radius": 0.0
+    "name": "logistic_regression"
   },
   "answer_file": "answer.csv",
   "magic": "../qdata/external/magic.csv",
-  "wrong_predictions_file": "wrong_predictions.txt"
+  "wrong_predictions_file": "wrong_predictions.txt",
+  "x_to_predict": "../qdata/raw/x_test.txt",
+  "header_weight": 0.4,
+  "min_total_case_probability": 0.5,
+  "unknown_file": "unknown.txt"
 }

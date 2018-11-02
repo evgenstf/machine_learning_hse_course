@@ -3,6 +3,8 @@ sys.path.append("../../base")
 from common import *
 
 from sklearn.feature_extraction import text
+from sklearn.linear_model import LogisticRegression
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 class SklearnCountVectorizerModel:
     def __init__(self, config):
@@ -17,12 +19,17 @@ class SklearnCountVectorizerModel:
         self.log.info("inited")
 
     def load_train(self, x_train, y_train):
-        X_train_counts = self.count_vectorizer.fit_transform(["the a bad lel", "a the good kek"])
-        tfidf_transformer = text.TfidfTransformer()
-        X_train_tfidf = tfidf_transformer.fit_transform(X_train_counts)
-        return X_train_tfidf
+        print("size:", len(x_train), "tests:", x_train)
+        print(y_train)
+        self.vectorizer = TfidfVectorizer()
+        self.vectorizer.fit(x_train)
+        self.tfidf = self.vectorizer.transform(x_train)
+
+        self.lr = LogisticRegression()
+        self.lr.fit(self.tfidf, y_train)
+
 
     def predict(self, x_to_predict):
-        return 1
+        return self.lr.predict_proba(self.vectorizer.transform(x_to_predict))
 
 

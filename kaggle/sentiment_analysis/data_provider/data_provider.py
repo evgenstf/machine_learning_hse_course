@@ -4,9 +4,10 @@ from common import *
 from sklearn.model_selection import train_test_split
 from random import shuffle
 import pandas as pd
+import langdetect
 
 class DataProvider:
-    def __init__(self, config):
+    def __init__(self, config, part):
         self.log = logging.getLogger("DataProvider")
         self.log.info("data provider config: {0}".format(config))
         self.x_known_path = config["x_known"]
@@ -29,6 +30,18 @@ class DataProvider:
         self.x_to_predict = x_to_predict_file.readlines()
         self.log.debug("loaded {0} x_to_predict lines".format(len(self.x_to_predict)))
 
+        for i in range(len(self.x_known)):
+            self.x_known[i] = self.x_known[i].split(':', 1)[0 if part == "header" else 1]
+            """
+            try:
+                if langdetect.detect(self.x_known[i]) != "en":
+                    self.x_known[i] = ""
+            except Exception:
+                self.log.error("could not detect language: {0}".format(self.x_known[i]))
+            """
+
+        for i in range(len(self.x_to_predict)):
+            self.x_to_predict[i] = self.x_to_predict[i].split(':', 1)[0 if part == "header" else 1]
 
         self.split_known_data_to_train_and_test(config["train_part"])
 
