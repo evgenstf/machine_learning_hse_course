@@ -3,14 +3,14 @@ sys.path.append("../../base")
 from common import *
 
 from sklearn.feature_extraction import text
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegressionCV
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 class LogisticRegressionModel:
     def __init__(self, config):
         self.log = logging.getLogger("LogisticRegressionModel")
         self.name = "logistic_regression"
-        self.model = LogisticRegression()
+        self.model = LogisticRegressionCV(penalty='l2', scoring='roc_auc', tol=1e-4, n_jobs=-1, refit=True, random_state=11)
         self.log.info("inited")
 
     def load_train(self, x_train, y_train):

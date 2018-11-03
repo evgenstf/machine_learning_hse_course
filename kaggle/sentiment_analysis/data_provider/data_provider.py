@@ -17,7 +17,7 @@ class DataProvider:
 
         x_known_file = open(self.x_known_path, 'r')
         self.x_known = x_known_file.readlines()
-        self.y_known = pd.read_csv(self.y_known_path)["Probability"].tolist()
+        self.y_known = np.array(pd.read_csv(self.y_known_path)['Probability'].values)
 
         known_using_count = int(len(self.x_known) * self.known_using_part)
         self.x_known = self.x_known[:known_using_count]
@@ -36,6 +36,8 @@ class DataProvider:
             try:
                 if langdetect.detect(self.x_known[i]) != "en":
                     self.x_known[i] = ""
+                else:
+                    self.log.debug("not english: {0}".format(self.x_known[i]))
             except Exception:
                 self.log.error("could not detect language: {0}".format(self.x_known[i]))
             """

@@ -1,23 +1,23 @@
 {
   "header_data_provider": {
-    "x_known": "../qdata/raw/head_x_train.txt",
-    "y_known": "../qdata/raw/head_y_train.csv",
-    "x_to_predict": "../qdata/raw/head_x_test.txt",
-    "known_using_part" : 1,
-    "train_part": 0.99999999999
-  },
-  "body_data_provider": {
-    "x_known": "../qdata/raw/head_x_train.txt",
-    "y_known": "../qdata/raw/head_y_train.csv",
+    "x_known": "../qdata/raw/x_train.txt",
+    "y_known": "../qdata/raw/y_train.csv",
     "x_to_predict": "../qdata/raw/head_x_test.txt",
     "known_using_part" : 0.1,
     "train_part": 0.99999999999
   },
+  "body_data_provider": {
+    "x_known": "../qdata/raw/x_train.txt",
+    "y_known": "../qdata/raw/y_train.csv",
+    "x_to_predict": "../qdata/raw/head_x_test.txt",
+    "known_using_part" : 0.03,
+    "train_part": 0.99999999999
+  },
   "x_transformer": {
     "name": "tfidf",
-    "min_df": 0.005,
-    "max_df": 1.0,
-    "ngram_range" : [1, 2]
+    "min_df": 5,
+    "max_df": 0.95,
+    "ngram_range" : [1, 3]
   },
   "model": {
     "name": "logistic_regression"
@@ -26,7 +26,6 @@
   "magic": "../qdata/external/magic.csv",
   "wrong_predictions_file": "wrong_predictions.txt",
   "x_to_predict": "../qdata/raw/x_test.txt",
-  "header_weight": 0.4,
-  "min_total_case_probability": 0.5,
-  "unknown_file": "unknown.txt"
+  "header_weight": 0.35,
+  "min_decision_probability": 0.5
 }

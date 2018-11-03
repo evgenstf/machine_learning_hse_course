@@ -18,8 +18,9 @@ class TfidfXTransformer:
                 min_df = self.min_df,
                 max_df = self.max_df,
                 ngram_range = self.ngram_range,
-                stop_words = ["must"]
+                #stop_words = ["must", "and"]
                 #stop_words = stopwords.words('english')
+                norm='l2'
         )
 
         self.name = "tfidf"
