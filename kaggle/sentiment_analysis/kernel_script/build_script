@@ -1,0 +1,21 @@
+rm script.py
+cat ../base/*.py >> script.py
+cat ../data_provider/*.py >> script.py
+cat ../x_transformer/*.py >> script.py
+cat ../model/*.py >> script.py
+cat ../launcher/launcher.py >> script.py
+sed -i'.original' -e 's/from word_counter_x_transformer import \*//g' script.py
+sed -i'.original' -e 's/from dummy_x_transformer import \*//g' script.py
+sed -i'.original' -e 's/from tfidf_x_transformer import \*//g' script.py
+sed -i'.original' -e 's/from dummy_model import \*//g' script.py
+sed -i'.original' -e 's/from word_weight_model import \*//g' script.py
+sed -i'.original' -e 's/from sklearn_count_vectorizer_model import \*//g' script.py
+sed -i'.original' -e 's/from logistic_regression_model import \*//g' script.py
+sed -i'.original' -e 's/from linear_svc_model import \*//g' script.py
+sed -i'.original' -e 's/from common import \*//g' script.py
+sed -i'.original' -e 's/sys.path.append/print/g' script.py
+sed -i'.original' -e 's/from data_provider import \*//g' script.py
+sed -i'.original' -e 's/from x_transformer import \*//g' script.py
+sed -i'.original' -e 's/from model import \*//g' script.py
+sed -i'.original' -e 's/from x_transformer_by_config import \*//g' script.py
+sed -i'.original' -e 's/from model_by_config import \*//g' script.py

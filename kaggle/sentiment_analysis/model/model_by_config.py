@@ -6,6 +6,7 @@ from dummy_model import *
 from word_weight_model import *
 from sklearn_count_vectorizer_model import *
 from logistic_regression_model import *
+from linear_svc_model import *
 
 def model_by_config(config):
     model_config = config["model"]
@@ -18,4 +19,6 @@ def model_by_config(config):
         return SklearnCountVectorizerModel(model_config)
     if (name == "logistic_regression"):
         return LogisticRegressionModel(model_config)
+    if (name == "linear_svc"):
+        return LinearSVCModel(model_config)
     logging.fatal("unknown model name: {0}".format(name))

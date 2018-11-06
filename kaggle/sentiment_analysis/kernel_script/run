@@ -1,0 +1,3 @@
+#!/bin/bash -e
+time python3 script.py
+python3 calc.py

@@ -3,7 +3,17 @@ import warnings
 warnings.filterwarnings("ignore")
 
 import logging
+import sys
+
+root = logging.getLogger()
+root.setLevel(logging.DEBUG)
+
 logging.basicConfig(level=logging.DEBUG)
+ch = logging.StreamHandler(sys.stdout)
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s %(levelname)s[%(name)s] - %(message)s')
+ch.setFormatter(formatter)
+#root.addHandler(ch)
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.svm import LinearSVC
@@ -13,6 +23,9 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics import roc_auc_score, accuracy_score
 import numpy as np
 import pandas as pd
+from sklearn.metrics import roc_auc_score
+
+from math import sqrt
 
 
 
@@ -42,13 +55,4 @@ def mape_score(y_data, prediction):
     return total
 
 def ratio_score(y_expected, y_predicted):
-    right_count = 0
-    total_count = 0
-    for i in range(len(y_predicted)):
-        if (y_predicted[i] != -1):
-            total_count += 1
-            if (y_expected[i] == y_predicted[i]):
-                right_count += 1
-    if (total_count == 0):
-        return -1
-    return right_count / total_count
+    return roc_auc_score(y_expected[:len(y_predicted)], y_predicted)

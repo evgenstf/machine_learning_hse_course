@@ -6,6 +6,16 @@ from random import shuffle
 import pandas as pd
 import langdetect
 
+"""
+try:
+    if langdetect.detect(self.x_known[i]) != "en":
+        self.x_known[i] = ""
+    else:
+        self.log.debug("not english: {0}".format(self.x_known[i]))
+except Exception:
+    self.log.error("could not detect language: {0}".format(self.x_known[i]))
+"""
+
 class DataProvider:
     def __init__(self, config, part):
         self.log = logging.getLogger("DataProvider")
@@ -32,15 +42,6 @@ class DataProvider:
 
         for i in range(len(self.x_known)):
             self.x_known[i] = self.x_known[i].split(':', 1)[0 if part == "header" else 1]
-            """
-            try:
-                if langdetect.detect(self.x_known[i]) != "en":
-                    self.x_known[i] = ""
-                else:
-                    self.log.debug("not english: {0}".format(self.x_known[i]))
-            except Exception:
-                self.log.error("could not detect language: {0}".format(self.x_known[i]))
-            """
 
         for i in range(len(self.x_to_predict)):
             self.x_to_predict[i] = self.x_to_predict[i].split(':', 1)[0 if part == "header" else 1]

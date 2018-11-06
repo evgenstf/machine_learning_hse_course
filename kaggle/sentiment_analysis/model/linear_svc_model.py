@@ -3,16 +3,15 @@ sys.path.append("../../base")
 from common import *
 
 from sklearn.feature_extraction import text
-from sklearn.linear_model import LogisticRegressionCV
+from sklearn.svm import LinearSVC
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.calibration import CalibratedClassifierCV
 
-class LogisticRegressionModel:
+class LinearSVCModel:
     def __init__(self, config):
-        self.log = logging.getLogger("LogisticRegressionModel")
-        self.name = "logistic_regression"
-        self.model = LogisticRegressionCV(
-                penalty='l2', scoring='roc_auc', tol=1e-4, n_jobs=-1, refit=True, random_state=11,
-                verbose=1)
+        self.log = logging.getLogger("LinearSVCModel")
+        self.name = "linear_svc"
+        self.model = LinearSVC()
         self.log.info("inited")
 
     def load_train(self, x_train, y_train):
@@ -23,7 +22,11 @@ class LogisticRegressionModel:
 
     def predict_probabilities(self, x_to_predict):
         self.log.info("predict x_to_predict size: {0}".format(x_to_predict.shape[0]))
-        return self.model.predict_proba(x_to_predict)
+        predictions = 1 /(1 + np.exp(self.model.decision_function(-x_to_predict)))
+        probabilities = []
+        for x in predictions:
+            probabilities.append([(1 - x), x])
+        return probabilities
 
     def weights(self):
-        return self.model.coef_[0]
+        return [0]
