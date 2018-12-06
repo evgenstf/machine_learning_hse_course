@@ -58,11 +58,6 @@ def mape_score(y_data, prediction):
 
 def ratio_score(y_expected, y_predicted):
     return roc_auc_score(y_expected[:len(y_predicted)], y_predicted)
-from random import shuffle
-import pandas as pd
-
-
-
 
 #---------data_provider----------
 
@@ -105,10 +100,6 @@ class DataProvider:
 
 
 
-
-
-
-
 #----------dummy_x_transformer----------
 
 class DummyXTransformer:
@@ -130,8 +121,6 @@ class DummyXTransformer:
         self.log.info("transformed")
         return result
 
-
-
 #----------x_transformer_by_config----------
 
 def x_transformer_by_config(config):
@@ -140,11 +129,6 @@ def x_transformer_by_config(config):
     if (name == "dummy"):
         return DummyXTransformer(x_transormer_config)
     logging.fatal("unknown x transformer name: {0}".format(name))
-
-
-
-
-
 #----------dummy_model----------
 
 class DummyModel:
@@ -165,8 +149,6 @@ class DummyModel:
         result = [1]
         self.log.info("predicted")
         return result
-
-
 
 #----------model_by_config----------
 
@@ -195,7 +177,6 @@ config = json.loads("""
   "answer_file": "answer.csv"
 }
 """)
-
 #----------launcher----------
 
 def make_prediction(config):
