@@ -13,7 +13,7 @@ from common import *
 class DummyXTransformer:
     def __init__(self, config):
         self.log = logging.getLogger("DummyXTransformer")
-        self.log.info("x_transformer config:", config)
+        self.log.info("x_transformer config: {0}".format(config))
         self.config = config
         self.log.info("inited")
 

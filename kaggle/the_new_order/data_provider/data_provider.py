@@ -19,9 +19,11 @@ class DataProvider:
         self.x_to_predict_path = config["x_to_predict"]
         self.known_using_part = config["known_using_part"]
 
-        x_known_file = open(self.x_known_path, 'r')
-        self.x_known = x_known_file.readlines()
-        self.y_known = np.array(pd.read_csv(self.y_known_path)['second'].values)
+        x_known_archive = np.load(self.x_known_path)
+        self.x_known = x_known_archive[x_known_archive.files[0]]
+
+        y_known_archive = np.load(self.y_known_path)
+        self.y_known = y_known_archive[y_known_archive.files[0]]
 
         known_using_count = int(len(self.x_known) * self.known_using_part)
         self.x_known = self.x_known[:known_using_count]
@@ -30,8 +32,8 @@ class DataProvider:
         self.log.debug("loaded {0} x_known lines".format(len(self.x_known)))
         self.log.debug("loaded {0} y_known lines".format(len(self.y_known)))
 
-        x_to_predict_file = open(self.x_to_predict_path, 'r')
-        self.x_to_predict = x_to_predict_file.readlines()
+        x_to_predict_archive = np.load(self.x_to_predict_path)
+        self.x_to_predict = x_to_predict_archive[x_to_predict_archive.files[0]]
         self.log.debug("loaded {0} x_to_predict lines".format(len(self.x_to_predict)))
 
         self.split_known_data_to_train_and_test(config["train_part"])

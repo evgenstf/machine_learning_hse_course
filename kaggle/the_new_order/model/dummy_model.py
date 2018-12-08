@@ -11,8 +11,8 @@ from common import *
 
 class DummyModel:
     def __init__(self, config):
-        self.log = logging.getLogger("SkLearnCountVectorizerModel")
-        self.log.info("model config:", config)
+        self.log = logging.getLogger("DummyModel")
+        self.log.info("model config: {0}".format(config))
         self.config = config
         self.log.info("inited")
 
