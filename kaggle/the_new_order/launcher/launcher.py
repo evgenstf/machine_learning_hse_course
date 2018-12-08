@@ -24,8 +24,8 @@ def make_prediction(config):
     x_transformer = x_transformer_by_config(config)
     model = model_by_config(config)
 
-    x_transformer.load_train_data(data_provider.x_train, data_provider.y_train)
-    model.load_train_data(x_transformer.transform(data_provider.x_train), data_provider.y_train)
+    x_transformer.load_train_data(data_provider.x_known, data_provider.y_known)
+    model.load_train_data(x_transformer.transform(data_provider.x_known), data_provider.y_known)
 
     prediction = model.predict(x_transformer.transform(data_provider.x_to_predict))
     return prediction
