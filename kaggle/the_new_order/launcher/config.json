@@ -3,15 +3,18 @@
     "x_known": "../qdata/raw/x_train_1.npz",
     "y_known": "../qdata/raw/y_train.npz",
     "x_to_predict": "../qdata/raw/x_test.npz",
-    "known_using_part" : 0.1,
-    "train_part": 0.99999999999
+    "known_using_part" : 1
   },
   "x_transformer": {
     "name": "dummy"
   },
   "model": {
     "name": "catboost",
-    "iterations": 10
+    "iterations": 100,
+    "depth": 5,
+    "loss_function": "MultiClassOneVsAll",
+    "classes_count": 5
   },
+  "flush_to_file": false,
   "answer_file": "answer.csv"
 }

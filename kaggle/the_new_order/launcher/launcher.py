@@ -36,10 +36,10 @@ log.info("launcher config: {0}".format(config))
 
 prediction = make_prediction(config)
 
-log.info("flush result to {0}".format(config["answer_file"]))
+if (config["flush_to_file"]):
+    log.info("flush result to {0}".format(config["answer_file"]))
+    answer_file = open(config["answer_file"], 'w')
+    answer_file.write("Id,Probability\n")
 
-answer_file = open(config["answer_file"], 'w')
-answer_file.write("Id,Probability\n")
-
-for i in range(len(prediction)):
-    answer_file.write("%s,%s\n" % (i + 1, prediction[i]))
+    for i in range(len(prediction)):
+        answer_file.write("%s,%s\n" % (i + 1, prediction[i]))

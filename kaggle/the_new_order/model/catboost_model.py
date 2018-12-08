@@ -15,9 +15,10 @@ class CatboostModel:
         self.log.info("model config: {0}".format(config))
         self.config = config
         self.model = cb.CatBoostClassifier(
-                loss_function="MultiClassOneVsAll",
-                classes_count=5,
-                iterations=self.config["iterations"]
+                loss_function=self.config["loss_function"],
+                classes_count=self.config["classes_count"],
+                iterations=self.config["iterations"],
+                depth=self.config["depth"]
         )
         self.log.info("inited")
 
