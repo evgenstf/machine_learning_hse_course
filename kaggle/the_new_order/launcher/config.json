@@ -10,7 +10,8 @@
     "name": "dummy"
   },
   "model": {
-    "name": "dummy"
+    "name": "catboost",
+    "iterations": 10
   },
   "answer_file": "answer.csv"
 }

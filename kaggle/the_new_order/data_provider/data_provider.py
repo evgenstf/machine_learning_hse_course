@@ -32,11 +32,11 @@ class DataProvider:
             known_count, self.known_using_part * 100))
 
         random_permutation = np.random.permutation(known_count)
-        self.x_known = x_known[random_permutation][:known_using_count]
-        self.y_known = y_known[random_permutation][:known_using_count]
+        self.x_train = x_known[random_permutation][:known_using_count]
+        self.y_train = y_known[random_permutation][:known_using_count]
 
-        self.log.debug("loaded {0} x_known lines".format(len(self.x_known)))
-        self.log.debug("loaded {0} y_known lines".format(len(self.y_known)))
+        self.log.debug("loaded {0} x_train lines".format(len(self.x_train)))
+        self.log.debug("loaded {0} y_train lines".format(len(self.y_train)))
 
         x_to_predict_archive = np.load(self.x_to_predict_path)
         self.x_to_predict = x_to_predict_archive[x_to_predict_archive.files[0]]

@@ -5,6 +5,7 @@ warnings.filterwarnings("ignore")
 import logging
 import sys
 
+from scipy.stats import spearmanr
 
 logging.basicConfig(level=logging.INFO)
 
