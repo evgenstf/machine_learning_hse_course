@@ -5,6 +5,8 @@ warnings.filterwarnings("ignore")
 import logging
 import sys
 
+import random
+
 from scipy.stats import spearmanr
 
 import catboost as cb
@@ -72,16 +74,27 @@ class DataProvider:
         self.y_known_path = config["y_known"]
         self.x_to_predict_path = config["x_to_predict"]
         self.known_using_part = config["known_using_part"]
+        x_known = None
 
-        x_known_archive = np.load(self.x_known_path)
-        x_known = x_known_archive[x_known_archive.files[0]]
+        for i in range(1, config["max_file_index"] + 1):
+            filename = self.x_known_path.replace("{i}", str(i))
+            with np.load(filename) as data:
+                self.log.info("load {0}".format(filename))
+                temp_data = data[data.files[0]]
+                if x_known is None:
+                    x_known = temp_data
+                else:
+                    x_known = np.concatenate((x_known, temp_data))
 
-        y_known_archive = np.load(self.y_known_path)
-        y_known = y_known_archive[y_known_archive.files[0]]
+        y_known = None
+        with np.load(self.y_known_path) as data:
+            self.log.info("load {0}".format(self.y_known_path))
+            y_known = data[data.files[0]]
+
 
         known_count = len(x_known)
         known_using_count = int(known_count * self.known_using_part)
-        
+
         self.log.info("known using count: {0}/{1} ({2}%)".format(known_using_count,
             known_count, self.known_using_part * 100))
 
@@ -89,9 +102,12 @@ class DataProvider:
         self.x_known = x_known[random_permutation][:known_using_count]
         self.y_known = y_known[random_permutation][:known_using_count]
 
-        x_to_predict_archive = np.load(self.x_to_predict_path)
-        self.x_to_predict = x_to_predict_archive[x_to_predict_archive.files[0]]
+        with np.load(self.x_to_predict_path) as data:
+            self.log.info("load {0}".format(self.x_to_predict_path))
+            self.x_to_predict = data[data.files[0]]
+
         self.log.info("loaded {0} x_to_predict lines".format(len(self.x_to_predict)))
+
 
         self.split_known_data_to_train_and_test(config["train_part"])
 
@@ -102,10 +118,73 @@ class DataProvider:
                 self.x_known, self.y_known, train_size = train_part, random_state = 42)
         self.log.info("splitted known data: "
                 "x_train size: {0} y_train size: {1} x_test size: {2} y_test size: {3}".format(
-                        len(self.x_train), len(self.y_train), len(self.x_test), len(self.y_test)
+                    len(self.x_train), len(self.y_train), len(self.x_test), len(self.y_test)
+                    )
                 )
-        )
+        """
+        bx, by = self.balance_data(self.x_train, self.y_train)
+        self.x_train = bx
+        self.y_train = by
+        """
 
+    def balance_data(self, x, y):
+        indixes = [[], [], [], [], []]
+
+        for i in range(1, len(x)):
+            indixes[y[i]].append(i)
+
+        fsize = len(indixes[4])
+
+        def sample(cls):
+            ind = [indixes[cls][i] for i in sorted(random.sample(range(len(indixes[cls])), fsize))]
+            return x[ind], y[ind]
+
+        xs, ys = sample(0)
+        for i in range(1, 5):
+            xx, yy = sample(i)
+            xs = np.concatenate((xs, xx), axis=0)
+            ys = np.concatenate((ys, yy), axis=0)
+
+
+        perm = np.random.permutation(xs.shape[0])
+        x_train = xs[perm]
+        y_train = ys[perm]
+        return x_train, y_train
+
+
+#----------catboost_x_transformer----------
+
+class CatboostXTransformer:
+    def __init__(self, config):
+        self.log = logging.getLogger("CatboostXTransformer")
+        self.log.info("x_transformer config: {0}".format(config))
+        self.config = config
+        self.model = cb.CatBoostRegressor(
+                #logging_level="Silent",
+                loss_function=self.config["loss_function"],
+                #classes_count=self.config["classes_count"],
+                iterations=self.config["iterations"],
+                l2_leaf_reg=self.config["l2_leaf_reg"],
+                learning_rate=self.config["learning_rate"],
+                depth=self.config["depth"],
+                thread_count=19
+                #one_hot_max_size=self.config["one_hot_max_size"]
+        )
+        self.log.info("inited")
+
+    def load_train_data(self, x_train, y_train):
+        self.log.info("load x_train size: {0} y_train size: {1}".format(len(x_train), len(y_train)))
+        self.model.fit(x_train, y_train)
+        self.log.info("loaded")
+
+    def transform(self, x_data):
+        self.log.info("transform x_data size: {0}".format(len(x_data)))
+        additional_column = self.model.predict(x_data)
+        print(additional_column.shape)
+        print(x_data.shape)
+        result = np.concatenate((x_data, additional_column.reshape(-1, 1)), axis=1)
+        self.log.info("transformed")
+        return result
 
 #----------dummy_x_transformer----------
 
@@ -127,7 +206,26 @@ class DummyXTransformer:
         result = x_data
         self.log.info("transformed")
         return result
+#----------dummy_x_transformer----------
 
+class SuperXTransformer:
+    def __init__(self, config):
+        self.log = logging.getLogger("SuperXTransformer")
+        self.log.info("x_transformer config: {0}".format(config))
+        self.config = config
+        self.log.info("inited")
+
+    def load_train_data(self, x_train, y_train):
+        self.log.info("load x_train size: {0} y_train size: {1}".format(len(x_train), len(y_train)))
+        self.x_train = x_train
+        self.y_train = y_train
+        self.log.info("loaded")
+
+    def transform(self, x_data):
+        self.log.info("transform x_data size: {0}".format(len(x_data)))
+        result = x_data
+        self.log.info("transformed")
+        return result
 #----------x_transformer_by_config----------
 
 def x_transformer_by_config(config):
@@ -135,6 +233,10 @@ def x_transformer_by_config(config):
     name = x_transormer_config["name"]
     if (name == "dummy"):
         return DummyXTransformer(x_transormer_config)
+    if (name == "super"):
+        return SuperXTransformer(x_transormer_config)
+    if (name == "catboost"):
+        return CatboostXTransformer(x_transormer_config)
     logging.fatal("unknown x transformer name: {0}".format(name))
 #----------catboost_model----------
 
@@ -143,13 +245,64 @@ class CatboostModel:
         self.log = logging.getLogger("CatboostModel")
         self.log.info("model config: {0}".format(config))
         self.config = config
+        catboost_parameters = {
+                'iterations': config["iterations"],
+                'custom_metric': ['NDCG', 'PFound', 'AverageGain:top=5'],
+                'random_seed': 0,
+                'loss_function': config["loss_function"]
+        }
+
+        self.model = cb.CatBoost(catboost_parameters)
+        self.log.info("inited")
+
+    def load_train_data(self, x_train, y_train):
+        self.log.info("load x_train size: {0} y_train size: {1}".format(len(x_train), len(y_train)))
+        self.model.fit(x_train, y_train)
+        self.log.info("loaded")
+
+    def predict(self, x_to_predict):
+        self.log.info("predict x_to_predict size: {0}".format(len(x_to_predict)))
+        prediction = self.round_prediction(self.model.predict(x_to_predict))
+        self.log.info("predicted")
+        return prediction.reshape(-1,)
+
+    def round_prediction(self, prediction):
+        percentiles = np.cumsum(np.array([25.7385, 25.7385, 16.245, 16.245, 6.5, 6.5, 0.9,
+            0.9]))
+        print(percentiles)
+        result = np.empty_like(prediction)
+        result[prediction < np.percentile(prediction, percentiles[0])] = 0
+        for i in range(7):
+            result[
+                    np.logical_and(prediction >= np.percentile(prediction, percentiles[i]),
+                    prediction < np.percentile(prediction, percentiles[i + 1]))
+            ] = i + 1
+        result[prediction >= np.percentile(prediction, percentiles[7])] = 7
+        return result
+#----------catboost_model----------
+
+class ClassboostModel:
+    def __init__(self, config):
+        self.log = logging.getLogger("ClassboostModel")
+        self.log.info("model config: {0}".format(config))
+        self.config = config
         self.model = cb.CatBoostClassifier(
                 #logging_level="Silent",
                 loss_function=self.config["loss_function"],
                 classes_count=self.config["classes_count"],
                 iterations=self.config["iterations"],
+                l2_leaf_reg=self.config["l2_leaf_reg"],
+                learning_rate=self.config["learning_rate"],
                 depth=self.config["depth"],
-                thread_count=19
+                thread_count=19,
+                one_hot_max_size=self.config["one_hot_max_size"],
+                class_weights=[
+                    0.008081142895024694,
+                    0.018370586437144825,
+                    0.13386367905244898,
+                    0.3249111486772662,
+                    0.5147734429381153
+                ]
         )
         self.log.info("inited")
 
@@ -162,7 +315,7 @@ class CatboostModel:
         self.log.info("predict x_to_predict size: {0}".format(len(x_to_predict)))
         prediction = self.model.predict(x_to_predict)
         self.log.info("predicted")
-        return prediction
+        return prediction.reshape(-1,)
 #----------dummy_model----------
 
 class DummyModel:
@@ -183,7 +336,6 @@ class DummyModel:
         result = [1]
         self.log.info("predicted")
         return result
-
 #----------model_by_config----------
 
 def model_by_config(config):
@@ -193,59 +345,123 @@ def model_by_config(config):
         return DummyModel(model_config)
     if (name == "catboost"):
         return CatboostModel(model_config)
+    if (name == "regboost"):
+        return RegboostModel(model_config)
     logging.fatal("unknown model name: {0}".format(name))
+#----------catboost_model----------
+
+class RegboostModel:
+    def __init__(self, config):
+        self.log = logging.getLogger("RegboostModel")
+        self.log.info("model config: {0}".format(config))
+        self.config = config
+        self.model = cb.CatBoostRegressor(
+                #logging_level="Silent",
+                loss_function=self.config["loss_function"],
+                #classes_count=self.config["classes_count"],
+                iterations=self.config["iterations"],
+                l2_leaf_reg=self.config["l2_leaf_reg"],
+                learning_rate=self.config["learning_rate"],
+                depth=self.config["depth"],
+                thread_count=19
+                #one_hot_max_size=self.config["one_hot_max_size"]
+        )
+        self.log.info("inited")
+
+    def load_train_data(self, x_train, y_train):
+        self.log.info("load x_train size: {0} y_train size: {1}".format(len(x_train), len(y_train)))
+        self.model.fit(x_train, y_train)
+        self.log.info("loaded")
+
+    def predict(self, x_to_predict):
+        self.log.info("predict x_to_predict size: {0}".format(len(x_to_predict)))
+        prediction = self.round_prediction(self.model.predict(x_to_predict))
+        self.log.info("predicted")
+        return prediction
+
+    def round_prediction(self, prediction):
+        percentiles = np.cumsum(np.array([25.7385, 25.7385, 16.245, 16.245, 6.5, 6.5, 0.9,
+            0.9]))
+        print(percentiles)
+        result = np.empty_like(prediction)
+        result[prediction < np.percentile(prediction, percentiles[0])] = 0
+        for i in range(7):
+            result[
+                    np.logical_and(prediction >= np.percentile(prediction, percentiles[i]),
+                    prediction < np.percentile(prediction, percentiles[i + 1]))
+            ] = i + 1
+        result[prediction >= np.percentile(prediction, percentiles[7])] = 7
+        return result
+    """
+    def round_prediction(self, prediction):
+        percentiles = np.cumsum(np.array([51.477, 32.491, 13.386, 1.837]))
+        result = np.empty_like(prediction)
+        result[prediction < np.percentile(prediction, percentiles[0])] = 0
+        for i in range(3):
+            result[
+                    np.logical_and(prediction >= np.percentile(prediction, percentiles[i]),
+                    prediction < np.percentile(prediction, percentiles[i + 1]))
+            ] = i + 1
+        result[prediction >= np.percentile(prediction, percentiles[3])] = 4
+        return result
+        """
 #----------config----------
 config = json.loads("""
 {
   "data_provider": {
-    "x_known": "../input/x_train_1.npz",
+    "x_known": "../input/x_train_{i}.npz",
     "y_known": "../input/y_train.npz",
     "x_to_predict": "../input/x_test.npz",
-    "known_using_part" : 0.1,
+    "max_file_index": 1,
+    "known_using_part" : 1,
     "train_part" : 0.9
   },
   "x_transformer": {
-    "name": "dummy"
-  },
-  "model": {
     "name": "catboost",
-    "iterations": 1000,
-    "depth": 5,
-    "loss_function": "MultiClassOneVsAll",
+    "iterations": 100,
+    "depth": 10,
+    "learning_rate": 0.3,
+    "l2_leaf_reg":0.07,
+    "loss_function": "RMSE",
     "classes_count": 5
   },
-  "flush_to_file": true,
+  "model": {
+    "name": "regboost",
+    "iterations": 200,
+    "depth": 10,
+    "learning_rate": 0.01,
+    "l2_leaf_reg":3,
+    "loss_function": "RMSE",
+    "classes_count": 5
+  },
+  "predict_answer": true,
   "answer_file": "answer.csv"
 }
 """)
 #----------launcher----------
-
-def create_model(config, data_provider):
-    x_transformer = x_transformer_by_config(config)
-    model = model_by_config(config)
-
-    x_transformer.load_train_data(data_provider.x_train, data_provider.y_train)
-    model.load_train_data(x_transformer.transform(data_provider.x_train), data_provider.y_train)
-
-    return model
 
 log = logging.getLogger("Launcher")
 
 log.info("launcher config: {0}".format(config))
 
 data_provider = DataProvider(config["data_provider"])
+x_transformer = x_transformer_by_config(config)
+model = model_by_config(config)
 
-model = create_model(config, data_provider)
-#prediction = model.predict(data_provider.x_test)
+x_transformer.load_train_data(data_provider.x_train, data_provider.y_train)
+model.load_train_data(x_transformer.transform(data_provider.x_train), data_provider.y_train)
 
-#print("score:", spearmanr(prediction, data_provider.y_test)[0])
+prediction = model.predict(x_transformer.transform(data_provider.x_test))
 
-prediction = model.predict(data_provider.x_to_predict)
+print("prediction:", prediction)
+print("score:", spearmanr(prediction, data_provider.y_test)[0])
 
-if (config["flush_to_file"]):
+
+if (config["predict_answer"]):
+    prediction = model.predict(x_transformer.transform(data_provider.x_to_predict))
     log.info("flush result to {0}".format(config["answer_file"]))
     answer_file = open(config["answer_file"], 'w')
     answer_file.write("Id,Label\n")
 
     for i in range(len(prediction)):
-        answer_file.write("%s,%s\n" % (i + 1, int(prediction[i][0])))
+        answer_file.write("%s,%s\n" % (i + 1, int(prediction[i])))

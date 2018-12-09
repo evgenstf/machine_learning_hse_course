@@ -1,21 +1,30 @@
 {
   "data_provider": {
-    "x_known": "../input/x_train_1.npz",
+    "x_known": "../input/x_train_{i}.npz",
     "y_known": "../input/y_train.npz",
     "x_to_predict": "../input/x_test.npz",
-    "known_using_part" : 0.1,
-    "train_part" : 0.999
+    "max_file_index": 1,
+    "known_using_part" : 1,
+    "train_part" : 0.9
   },
   "x_transformer": {
-    "name": "dummy"
-  },
-  "model": {
     "name": "catboost",
-    "iterations": 1000,
-    "depth": 5,
-    "loss_function": "MultiClassOneVsAll",
+    "iterations": 100,
+    "depth": 10,
+    "learning_rate": 0.3,
+    "l2_leaf_reg":0.07,
+    "loss_function": "RMSE",
     "classes_count": 5
   },
-  "flush_to_file": true,
+  "model": {
+    "name": "regboost",
+    "iterations": 200,
+    "depth": 10,
+    "learning_rate": 0.01,
+    "l2_leaf_reg":3,
+    "loss_function": "RMSE",
+    "classes_count": 5
+  },
+  "predict_answer": true,
   "answer_file": "answer.csv"
 }

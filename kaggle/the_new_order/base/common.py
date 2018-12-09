@@ -5,6 +5,8 @@ warnings.filterwarnings("ignore")
 import logging
 import sys
 
+import random
+
 from scipy.stats import spearmanr
 
 import catboost as cb

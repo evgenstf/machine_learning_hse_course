@@ -1,0 +1,66 @@
+import sys
+sys.path.append("../../base")
+from common import *
+import catboost as cb
+from scipy.stats import spearmanr
+
+
+
+
+#----------catboost_model----------
+
+class RegboostModel:
+    def __init__(self, config):
+        self.log = logging.getLogger("RegboostModel")
+        self.log.info("model config: {0}".format(config))
+        self.config = config
+        self.model = cb.CatBoostRegressor(
+                #logging_level="Silent",
+                loss_function=self.config["loss_function"],
+                #classes_count=self.config["classes_count"],
+                iterations=self.config["iterations"],
+                l2_leaf_reg=self.config["l2_leaf_reg"],
+                learning_rate=self.config["learning_rate"],
+                depth=self.config["depth"],
+                thread_count=19
+                #one_hot_max_size=self.config["one_hot_max_size"]
+        )
+        self.log.info("inited")
+
+    def load_train_data(self, x_train, y_train):
+        self.log.info("load x_train size: {0} y_train size: {1}".format(len(x_train), len(y_train)))
+        self.model.fit(x_train, y_train)
+        self.log.info("loaded")
+
+    def predict(self, x_to_predict):
+        self.log.info("predict x_to_predict size: {0}".format(len(x_to_predict)))
+        prediction = self.round_prediction(self.model.predict(x_to_predict))
+        self.log.info("predicted")
+        return prediction
+
+    def round_prediction(self, prediction):
+        percentiles = np.cumsum(np.array([25.7385, 25.7385, 16.245, 16.245, 6.5, 6.5, 0.9,
+            0.9]))
+        print(percentiles)
+        result = np.empty_like(prediction)
+        result[prediction < np.percentile(prediction, percentiles[0])] = 0
+        for i in range(7):
+            result[
+                    np.logical_and(prediction >= np.percentile(prediction, percentiles[i]),
+                    prediction < np.percentile(prediction, percentiles[i + 1]))
+            ] = i + 1
+        result[prediction >= np.percentile(prediction, percentiles[7])] = 7
+        return result
+    """
+    def round_prediction(self, prediction):
+        percentiles = np.cumsum(np.array([51.477, 32.491, 13.386, 1.837]))
+        result = np.empty_like(prediction)
+        result[prediction < np.percentile(prediction, percentiles[0])] = 0
+        for i in range(3):
+            result[
+                    np.logical_and(prediction >= np.percentile(prediction, percentiles[i]),
+                    prediction < np.percentile(prediction, percentiles[i + 1]))
+            ] = i + 1
+        result[prediction >= np.percentile(prediction, percentiles[3])] = 4
+        return result
+        """
