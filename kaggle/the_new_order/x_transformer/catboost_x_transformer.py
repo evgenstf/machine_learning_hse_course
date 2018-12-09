@@ -22,6 +22,7 @@ class CatboostXTransformer:
                 iterations=self.config["iterations"],
                 l2_leaf_reg=self.config["l2_leaf_reg"],
                 learning_rate=self.config["learning_rate"],
+                #bagging_temperature=self.config["bagging_temperature"],
                 depth=self.config["depth"],
                 thread_count=19
                 #one_hot_max_size=self.config["one_hot_max_size"]

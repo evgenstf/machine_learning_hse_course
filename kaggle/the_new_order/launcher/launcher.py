@@ -32,7 +32,7 @@ model.load_train_data(x_transformer.transform(data_provider.x_train), data_provi
 
 prediction = model.predict(x_transformer.transform(data_provider.x_test))
 
-print("prediction:", prediction)
+#print("prediction:", prediction)
 print("score:", spearmanr(prediction, data_provider.y_test)[0])
 
 

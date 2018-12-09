@@ -22,6 +22,7 @@ class RegboostModel:
                 l2_leaf_reg=self.config["l2_leaf_reg"],
                 learning_rate=self.config["learning_rate"],
                 depth=self.config["depth"],
+                #bagging_temperature=self.config["bagging_temperature"],
                 thread_count=19
                 #one_hot_max_size=self.config["one_hot_max_size"]
         )
@@ -35,23 +36,33 @@ class RegboostModel:
     def predict(self, x_to_predict):
         self.log.info("predict x_to_predict size: {0}".format(len(x_to_predict)))
         prediction = self.round_prediction(self.model.predict(x_to_predict))
+        #prediction = self.model.predict(x_to_predict)
         self.log.info("predicted")
         return prediction
 
     def round_prediction(self, prediction):
-        percentiles = np.cumsum(np.array([25.7385, 25.7385, 16.245, 16.245, 6.5, 6.5, 0.9,
-            0.9]))
+        result = [0] * len(prediction)
+        sort_ind = np.argsort(prediction)
+
+        for i in range(len(sort_ind)):
+            result[sort_ind[i]] = int(i / len(sort_ind) * 20)
+        return result
+"""
+
+
+        percentiles = np.cumsum()
         print(percentiles)
         result = np.empty_like(prediction)
         result[prediction < np.percentile(prediction, percentiles[0])] = 0
-        for i in range(7):
+        for i in range(15):
             result[
                     np.logical_and(prediction >= np.percentile(prediction, percentiles[i]),
                     prediction < np.percentile(prediction, percentiles[i + 1]))
             ] = i + 1
-        result[prediction >= np.percentile(prediction, percentiles[7])] = 7
+        result[prediction >= np.percentile(prediction, percentiles[15])] = 15
         return result
-    """
+"""
+"""
     def round_prediction(self, prediction):
         percentiles = np.cumsum(np.array([51.477, 32.491, 13.386, 1.837]))
         result = np.empty_like(prediction)
