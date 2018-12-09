@@ -7,6 +7,8 @@ import sys
 
 from scipy.stats import spearmanr
 
+import catboost as cb
+
 logging.basicConfig(level=logging.INFO)
 
 #root = logging.getLogger()

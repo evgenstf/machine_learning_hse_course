@@ -1,20 +1,21 @@
 {
   "data_provider": {
-    "x_known": "../qdata/raw/x_train_1.npz",
-    "y_known": "../qdata/raw/y_train.npz",
-    "x_to_predict": "../qdata/raw/x_test.npz",
-    "known_using_part" : 1
+    "x_known": "../input/x_train_1.npz",
+    "y_known": "../input/y_train.npz",
+    "x_to_predict": "../input/x_test.npz",
+    "known_using_part" : 0.1,
+    "train_part" : 0.999
   },
   "x_transformer": {
     "name": "dummy"
   },
   "model": {
     "name": "catboost",
-    "iterations": 100,
+    "iterations": 1000,
     "depth": 5,
     "loss_function": "MultiClassOneVsAll",
     "classes_count": 5
   },
-  "flush_to_file": false,
+  "flush_to_file": true,
   "answer_file": "answer.csv"
 }

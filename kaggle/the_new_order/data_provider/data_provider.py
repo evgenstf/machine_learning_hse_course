@@ -32,15 +32,23 @@ class DataProvider:
             known_count, self.known_using_part * 100))
 
         random_permutation = np.random.permutation(known_count)
-        self.x_train = x_known[random_permutation][:known_using_count]
-        self.y_train = y_known[random_permutation][:known_using_count]
-
-        self.log.debug("loaded {0} x_train lines".format(len(self.x_train)))
-        self.log.debug("loaded {0} y_train lines".format(len(self.y_train)))
+        self.x_known = x_known[random_permutation][:known_using_count]
+        self.y_known = y_known[random_permutation][:known_using_count]
 
         x_to_predict_archive = np.load(self.x_to_predict_path)
         self.x_to_predict = x_to_predict_archive[x_to_predict_archive.files[0]]
-        self.log.debug("loaded {0} x_to_predict lines".format(len(self.x_to_predict)))
+        self.log.info("loaded {0} x_to_predict lines".format(len(self.x_to_predict)))
+
+        self.split_known_data_to_train_and_test(config["train_part"])
 
         self.log.info("inited")
+
+    def split_known_data_to_train_and_test(self, train_part):
+        self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(
+                self.x_known, self.y_known, train_size = train_part, random_state = 42)
+        self.log.info("splitted known data: "
+                "x_train size: {0} y_train size: {1} x_test size: {2} y_test size: {3}".format(
+                        len(self.x_train), len(self.y_train), len(self.x_test), len(self.y_test)
+                )
+        )
 
