@@ -98,6 +98,7 @@ class DataProvider:
         self.log.info("known using count: {0}/{1} ({2}%)".format(known_using_count,
             known_count, self.known_using_part * 100))
 
+        np.random.seed(seed=0)
         random_permutation = np.random.permutation(known_count)
         self.x_known = x_known[random_permutation][:known_using_count]
         self.y_known = y_known[random_permutation][:known_using_count]
@@ -105,6 +106,16 @@ class DataProvider:
         with np.load(self.x_to_predict_path) as data:
             self.log.info("load {0}".format(self.x_to_predict_path))
             self.x_to_predict = data[data.files[0]]
+
+        for i in config["features_to_multiply"]:
+            for j in config["features_to_multiply"]:
+                if i == j:
+                    continue
+                self.x_known = np.concatenate((self.x_known, (self.x_known[:, i] * self.x_known[:, j]).reshape(-1, 1)), axis=1)
+                self.x_known = np.concatenate((self.x_known, (np.log(self.x_known[:, i]) * np.log(self.x_known[:, j])).reshape(-1, 1)), axis=1)
+
+                self.x_to_predict = np.concatenate((self.x_to_predict, (self.x_to_predict[:, i] * self.x_to_predict[:, j]).reshape(-1, 1)), axis=1)
+                self.x_to_predict = np.concatenate((self.x_to_predict, (np.log(self.x_to_predict[:, i]) * np.log(self.x_to_predict[:, j])).reshape(-1, 1)), axis=1)
 
         self.log.info("loaded {0} x_to_predict lines".format(len(self.x_to_predict)))
 
@@ -159,30 +170,69 @@ class CatboostXTransformer:
         self.log = logging.getLogger("CatboostXTransformer")
         self.log.info("x_transformer config: {0}".format(config))
         self.config = config
+        primary_config = config["primary_model"]
         self.model = cb.CatBoostRegressor(
                 #logging_level="Silent",
-                loss_function=self.config["loss_function"],
+                loss_function=primary_config["loss_function"],
                 #classes_count=self.config["classes_count"],
-                iterations=self.config["iterations"],
-                l2_leaf_reg=self.config["l2_leaf_reg"],
-                learning_rate=self.config["learning_rate"],
-                depth=self.config["depth"],
-                thread_count=19
+                iterations=primary_config["iterations"],
+                l2_leaf_reg=primary_config["l2_leaf_reg"],
+                learning_rate=primary_config["learning_rate"],
+                #bagging_temperature=self.config["bagging_temperature"],
+                depth=primary_config["depth"],
+                thread_count=19,
+                random_state=42
+                #one_hot_max_size=self.config["one_hot_max_size"]
+        )
+        secondary_config = config["secondary_model"]
+        self.secondary_model = cb.CatBoostClassifier(
+                #logging_level="Silent",
+                loss_function="MultiClassOneVsAll",
+                classes_count=secondary_config["classes_count"],
+                iterations=secondary_config["iterations"],
+                l2_leaf_reg=secondary_config["l2_leaf_reg"],
+                learning_rate=secondary_config["learning_rate"],
+                #bagging_temperature=self.config["bagging_temperature"],
+                depth=secondary_config["depth"],
+                thread_count=19,
+                random_state=42
                 #one_hot_max_size=self.config["one_hot_max_size"]
         )
         self.log.info("inited")
 
     def load_train_data(self, x_train, y_train):
         self.log.info("load x_train size: {0} y_train size: {1}".format(len(x_train), len(y_train)))
+        self.log.info("start primary model")
         self.model.fit(x_train, y_train)
+
+        self.log.info("start secondary model")
+        self.secondary_model.fit(x_train, y_train)
         self.log.info("loaded")
 
     def transform(self, x_data):
         self.log.info("transform x_data size: {0}".format(len(x_data)))
-        additional_column = self.model.predict(x_data)
-        print(additional_column.shape)
-        print(x_data.shape)
-        result = np.concatenate((x_data, additional_column.reshape(-1, 1)), axis=1)
+        prediction = self.model.predict(x_data).reshape(-1, 1)
+        result = np.concatenate((x_data, prediction), axis=1)
+
+        self.log.info("transform x_data size: {0}".format(len(x_data)))
+        secondary_prediction = self.secondary_model.predict(x_data).reshape(-1, 1)
+        result = np.concatenate((result, secondary_prediction), axis=1)
+
+        """
+        additional_column = prediction ** 2
+        result = np.concatenate((result, additional_column.reshape(-1, 1)), axis=1)
+
+        additional_column = prediction ** 3
+        result = np.concatenate((result, additional_column.reshape(-1, 1)), axis=1)
+
+        additional_column = prediction ** 0.5
+        result = np.concatenate((result, additional_column.reshape(-1, 1)), axis=1)
+
+        additional_column = prediction ** 0.25
+        result = np.concatenate((result, additional_column.reshape(-1, 1)), axis=1)
+        """
+
+
         self.log.info("transformed")
         return result
 
@@ -255,9 +305,9 @@ class CatboostModel:
         self.model = cb.CatBoost(catboost_parameters)
         self.log.info("inited")
 
-    def load_train_data(self, x_train, y_train):
+    def load_train_data(self, x_train, y_train, x_test, y_test):
         self.log.info("load x_train size: {0} y_train size: {1}".format(len(x_train), len(y_train)))
-        self.model.fit(x_train, y_train)
+        self.model.fit(x_train, y_train, eval_set=(x_test, y_test))
         self.log.info("loaded")
 
     def predict(self, x_to_predict):
@@ -363,46 +413,85 @@ class RegboostModel:
                 l2_leaf_reg=self.config["l2_leaf_reg"],
                 learning_rate=self.config["learning_rate"],
                 depth=self.config["depth"],
-                thread_count=19
+                #bagging_temperature=self.config["bagging_temperature"],
+                thread_count=19,
+                random_state=42
                 #one_hot_max_size=self.config["one_hot_max_size"]
         )
         self.log.info("inited")
 
-    def load_train_data(self, x_train, y_train):
+    def load_train_data(self, x_train, y_train, x_test, y_test):
         self.log.info("load x_train size: {0} y_train size: {1}".format(len(x_train), len(y_train)))
-        self.model.fit(x_train, y_train)
+        self.model.fit(x_train, y_train, eval_set=(x_test, y_test))
+        """
+        self.log.info("loaded")
+        for i in range(150):
+            print(i, self.model.feature_importances_[i])
+        exit()
+        """
         self.log.info("loaded")
 
     def predict(self, x_to_predict):
         self.log.info("predict x_to_predict size: {0}".format(len(x_to_predict)))
         prediction = self.round_prediction(self.model.predict(x_to_predict))
+        #prediction = self.model.predict(x_to_predict)
         self.log.info("predicted")
         return prediction
 
     def round_prediction(self, prediction):
-        percentiles = np.cumsum(np.array([25.7385, 25.7385, 16.245, 16.245, 6.5, 6.5, 0.9,
-            0.9]))
+        result = [0] * len(prediction)
+        sort_ind = np.argsort(prediction)
+
+        for i in range(len(sort_ind)):
+            result[sort_ind[i]] = int(i / len(sort_ind) * 20)
+        return result
+
+"""
+
+
+        percentiles = np.cumsum()
         print(percentiles)
         result = np.empty_like(prediction)
         result[prediction < np.percentile(prediction, percentiles[0])] = 0
-        for i in range(7):
+        for i in range(15):
             result[
                     np.logical_and(prediction >= np.percentile(prediction, percentiles[i]),
                     prediction < np.percentile(prediction, percentiles[i + 1]))
             ] = i + 1
-        result[prediction >= np.percentile(prediction, percentiles[7])] = 7
+        result[prediction >= np.percentile(prediction, percentiles[15])] = 15
         return result
-    """
+"""
+"""
     def round_prediction(self, prediction):
-        percentiles = np.cumsum(np.array([51.477, 32.491, 13.386, 1.837]))
+        percentiles = np.cumsum(np.array([
+            51.477 / 5,
+            51.477 / 5,
+            51.477 / 5,
+            51.477 / 5,
+            51.477 / 5,
+            32.491 / 5,
+            32.491 / 5,
+            32.491 / 5,
+            32.491 / 5,
+            32.491 / 5,
+            13.386 / 5,
+            13.386 / 5,
+            13.386 / 5,
+            13.386 / 5,
+            13.386 / 5,
+            1.837 / 5,
+            1.837 / 5,
+            1.837 / 5,
+            1.837 / 5
+        ]))
         result = np.empty_like(prediction)
         result[prediction < np.percentile(prediction, percentiles[0])] = 0
-        for i in range(3):
+        for i in range(18):
             result[
                     np.logical_and(prediction >= np.percentile(prediction, percentiles[i]),
                     prediction < np.percentile(prediction, percentiles[i + 1]))
             ] = i + 1
-        result[prediction >= np.percentile(prediction, percentiles[3])] = 4
+        result[prediction >= np.percentile(prediction, percentiles[18])] = 19
         return result
         """
 #----------config----------
@@ -414,28 +503,40 @@ config = json.loads("""
     "x_to_predict": "../input/x_test.npz",
     "max_file_index": 1,
     "known_using_part" : 1,
-    "train_part" : 0.9
+    "train_part" : 0.9,
+    "features_to_multiply": [16, 47, 69, 70, 102, 135]
   },
   "x_transformer": {
     "name": "catboost",
-    "iterations": 100,
-    "depth": 10,
-    "learning_rate": 0.3,
-    "l2_leaf_reg":0.07,
-    "loss_function": "RMSE",
-    "classes_count": 5
+    "primary_model":{
+      "iterations": 1,
+      "depth": 10,
+      "learning_rate": 0.3,
+      "l2_leaf_reg":0.07,
+      "loss_function": "RMSE"
+    },
+    "secondary_model":{
+      "iterations": 1,
+      "depth": 10,
+      "learning_rate": 0.3,
+      "l2_leaf_reg":0.07,
+      "loss_function": "MultiClassOneVsAll",
+      "classes_count": 5
+    }
   },
   "model": {
     "name": "regboost",
-    "iterations": 200,
-    "depth": 10,
+    "iterations": 2,
+    "depth": 3,
     "learning_rate": 0.01,
     "l2_leaf_reg":3,
     "loss_function": "RMSE",
     "classes_count": 5
   },
   "predict_answer": true,
-  "answer_file": "answer.csv"
+  "answer_file": "answer.csv",
+
+  "using_features": [3, 5, 6, 7, 13, 16, 19, 23, 29, 31, 34, 38, 40, 44, 53, 56, 57, 69, 70, 72, 76, 88, 89, 95, 101, 102, 106, 127, 130, 131, 146]
 }
 """)
 #----------launcher----------
@@ -449,11 +550,17 @@ x_transformer = x_transformer_by_config(config)
 model = model_by_config(config)
 
 x_transformer.load_train_data(data_provider.x_train, data_provider.y_train)
-model.load_train_data(x_transformer.transform(data_provider.x_train), data_provider.y_train)
+
+model.load_train_data(
+        x_transformer.transform(data_provider.x_train),
+        data_provider.y_train,
+        x_transformer.transform(data_provider.x_test),
+        data_provider.y_test
+)
 
 prediction = model.predict(x_transformer.transform(data_provider.x_test))
 
-print("prediction:", prediction)
+#print("prediction:", prediction)
 print("score:", spearmanr(prediction, data_provider.y_test)[0])
 
 

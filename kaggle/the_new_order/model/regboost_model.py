@@ -23,7 +23,8 @@ class RegboostModel:
                 learning_rate=self.config["learning_rate"],
                 depth=self.config["depth"],
                 #bagging_temperature=self.config["bagging_temperature"],
-                thread_count=19
+                thread_count=19,
+                random_state=42
                 #one_hot_max_size=self.config["one_hot_max_size"]
         )
         self.log.info("inited")
@@ -31,6 +32,12 @@ class RegboostModel:
     def load_train_data(self, x_train, y_train):
         self.log.info("load x_train size: {0} y_train size: {1}".format(len(x_train), len(y_train)))
         self.model.fit(x_train, y_train)
+        """
+        self.log.info("loaded")
+        for i in range(150):
+            print(i, self.model.feature_importances_[i])
+        exit()
+        """
         self.log.info("loaded")
 
     def predict(self, x_to_predict):
@@ -45,8 +52,9 @@ class RegboostModel:
         sort_ind = np.argsort(prediction)
 
         for i in range(len(sort_ind)):
-            result[sort_ind[i]] = int(i / len(sort_ind) * 20)
+            result[sort_ind[i]] = int(i / len(sort_ind) * 21)
         return result
+
 """
 
 
@@ -64,14 +72,34 @@ class RegboostModel:
 """
 """
     def round_prediction(self, prediction):
-        percentiles = np.cumsum(np.array([51.477, 32.491, 13.386, 1.837]))
+        percentiles = np.cumsum(np.array([
+            51.477 / 5,
+            51.477 / 5,
+            51.477 / 5,
+            51.477 / 5,
+            51.477 / 5,
+            32.491 / 5,
+            32.491 / 5,
+            32.491 / 5,
+            32.491 / 5,
+            32.491 / 5,
+            13.386 / 5,
+            13.386 / 5,
+            13.386 / 5,
+            13.386 / 5,
+            13.386 / 5,
+            1.837 / 5,
+            1.837 / 5,
+            1.837 / 5,
+            1.837 / 5
+        ]))
         result = np.empty_like(prediction)
         result[prediction < np.percentile(prediction, percentiles[0])] = 0
-        for i in range(3):
+        for i in range(18):
             result[
                     np.logical_and(prediction >= np.percentile(prediction, percentiles[i]),
                     prediction < np.percentile(prediction, percentiles[i + 1]))
             ] = i + 1
-        result[prediction >= np.percentile(prediction, percentiles[3])] = 4
+        result[prediction >= np.percentile(prediction, percentiles[18])] = 19
         return result
         """
