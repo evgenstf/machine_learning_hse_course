@@ -59,8 +59,8 @@ class CatboostXTransformer:
         prediction = self.model.predict(x_data).reshape(-1, 1)
         result = np.concatenate((x_data, prediction), axis=1)
         result = np.concatenate((result, np.log(prediction)), axis=1)
-        result = np.concatenate((result, np.sqrt(prediction)), axis=1)
-        result = np.concatenate((result, prediction ** 2), axis=1)
+        #result = np.concatenate((result, np.sqrt(prediction)), axis=1)
+        #result = np.concatenate((result, prediction ** 2), axis=1)
 
         self.log.info("transform x_data size: {0}".format(len(x_data)))
         secondary_prediction = self.secondary_model.predict_proba(x_data)

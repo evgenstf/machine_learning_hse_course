@@ -37,7 +37,10 @@ model.load_train_data(
 prediction = model.predict(x_transformer.transform(data_provider.x_test))
 
 #print("prediction:", prediction)
-print("score:", spearmanr(prediction, data_provider.y_test)[0])
+score = spearmanr(prediction, data_provider.y_test)[0]
+print("score:", score)
+score_file = open("%s" % score, 'w')
+score_file.write("%s" % score)
 
 
 if (config["predict_answer"]):

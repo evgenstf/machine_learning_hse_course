@@ -42,7 +42,7 @@ class DataProvider:
         self.log.info("known using count: {0}/{1} ({2}%)".format(known_using_count,
             known_count, self.known_using_part * 100))
 
-        #np.random.seed(seed=0)
+        np.random.seed(seed=0)
         random_permutation = np.random.permutation(known_count)
         self.x_known = x_known[random_permutation][:known_using_count]
         self.y_known = y_known[random_permutation][:known_using_count]
@@ -67,10 +67,8 @@ class DataProvider:
             for j in config["features_to_multiply"]:
                 if i == j:
                     continue
-                self.x_known = np.concatenate((self.x_known, (self.x_known[:, i] * self.x_known[:, j]).reshape(-1, 1)), axis=1)
                 self.x_known = np.concatenate((self.x_known, (np.log(self.x_known[:, i]) * np.log(self.x_known[:, j])).reshape(-1, 1)), axis=1)
 
-                self.x_to_predict = np.concatenate((self.x_to_predict, (self.x_to_predict[:, i] * self.x_to_predict[:, j]).reshape(-1, 1)), axis=1)
                 self.x_to_predict = np.concatenate((self.x_to_predict, (np.log(self.x_to_predict[:, i]) * np.log(self.x_to_predict[:, j])).reshape(-1, 1)), axis=1)
 
         self.log.info("loaded x_known rows: {0} columns: {1}".format(self.x_known.shape[0], self.x_known.shape[1]))
