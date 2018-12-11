@@ -42,7 +42,7 @@ class DataProvider:
         self.log.info("known using count: {0}/{1} ({2}%)".format(known_using_count,
             known_count, self.known_using_part * 100))
 
-        np.random.seed(seed=0)
+        #np.random.seed(seed=0)
         random_permutation = np.random.permutation(known_count)
         self.x_known = x_known[random_permutation][:known_using_count]
         self.y_known = y_known[random_permutation][:known_using_count]
@@ -50,6 +50,18 @@ class DataProvider:
         with np.load(self.x_to_predict_path) as data:
             self.log.info("load {0}".format(self.x_to_predict_path))
             self.x_to_predict = data[data.files[0]]
+
+        """
+        for i in config["features_to_multiply"]:
+            self.x_known = np.concatenate((self.x_known, np.log(self.x_known[:, i]).reshape(-1, 1)), axis=1)
+            self.x_known = np.concatenate((self.x_known, np.sqrt(self.x_known[:, i]).reshape(-1, 1)), axis=1)
+            self.x_known = np.concatenate((self.x_known, (self.x_known[:, i] ** 2).reshape(-1, 1)), axis=1)
+
+            self.x_to_predict = np.concatenate((self.x_to_predict, np.log(self.x_to_predict[:, i]).reshape(-1, 1)), axis=1)
+            self.x_to_predict = np.concatenate((self.x_to_predict, np.sqrt(self.x_to_predict[:, i]).reshape(-1, 1)), axis=1)
+            self.x_to_predict = np.concatenate((self.x_to_predict, (self.x_to_predict[:, i] ** 2).reshape(-1, 1)), axis=1)
+            """
+
 
         for i in config["features_to_multiply"]:
             for j in config["features_to_multiply"]:
@@ -61,7 +73,8 @@ class DataProvider:
                 self.x_to_predict = np.concatenate((self.x_to_predict, (self.x_to_predict[:, i] * self.x_to_predict[:, j]).reshape(-1, 1)), axis=1)
                 self.x_to_predict = np.concatenate((self.x_to_predict, (np.log(self.x_to_predict[:, i]) * np.log(self.x_to_predict[:, j])).reshape(-1, 1)), axis=1)
 
-        self.log.info("loaded {0} x_to_predict lines".format(len(self.x_to_predict)))
+        self.log.info("loaded x_known rows: {0} columns: {1}".format(self.x_known.shape[0], self.x_known.shape[1]))
+        self.log.info("loaded x_to_predict rows: {0} columns: {1}".format(self.x_to_predict.shape[0], self.x_to_predict.shape[1]))
 
 
         self.split_known_data_to_train_and_test(config["train_part"])

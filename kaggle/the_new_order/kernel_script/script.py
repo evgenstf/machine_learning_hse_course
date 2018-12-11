@@ -107,6 +107,18 @@ class DataProvider:
             self.log.info("load {0}".format(self.x_to_predict_path))
             self.x_to_predict = data[data.files[0]]
 
+        """
+        for i in config["features_to_multiply"]:
+            self.x_known = np.concatenate((self.x_known, np.log(self.x_known[:, i]).reshape(-1, 1)), axis=1)
+            self.x_known = np.concatenate((self.x_known, np.sqrt(self.x_known[:, i]).reshape(-1, 1)), axis=1)
+            self.x_known = np.concatenate((self.x_known, (self.x_known[:, i] ** 2).reshape(-1, 1)), axis=1)
+
+            self.x_to_predict = np.concatenate((self.x_to_predict, np.log(self.x_to_predict[:, i]).reshape(-1, 1)), axis=1)
+            self.x_to_predict = np.concatenate((self.x_to_predict, np.sqrt(self.x_to_predict[:, i]).reshape(-1, 1)), axis=1)
+            self.x_to_predict = np.concatenate((self.x_to_predict, (self.x_to_predict[:, i] ** 2).reshape(-1, 1)), axis=1)
+            """
+
+
         for i in config["features_to_multiply"]:
             for j in config["features_to_multiply"]:
                 if i == j:
@@ -117,7 +129,8 @@ class DataProvider:
                 self.x_to_predict = np.concatenate((self.x_to_predict, (self.x_to_predict[:, i] * self.x_to_predict[:, j]).reshape(-1, 1)), axis=1)
                 self.x_to_predict = np.concatenate((self.x_to_predict, (np.log(self.x_to_predict[:, i]) * np.log(self.x_to_predict[:, j])).reshape(-1, 1)), axis=1)
 
-        self.log.info("loaded {0} x_to_predict lines".format(len(self.x_to_predict)))
+        self.log.info("loaded x_known rows: {0} columns: {1}".format(self.x_known.shape[0], self.x_known.shape[1]))
+        self.log.info("loaded x_to_predict rows: {0} columns: {1}".format(self.x_to_predict.shape[0], self.x_to_predict.shape[1]))
 
 
         self.split_known_data_to_train_and_test(config["train_part"])
@@ -213,10 +226,16 @@ class CatboostXTransformer:
         self.log.info("transform x_data size: {0}".format(len(x_data)))
         prediction = self.model.predict(x_data).reshape(-1, 1)
         result = np.concatenate((x_data, prediction), axis=1)
+        result = np.concatenate((result, np.log(prediction)), axis=1)
+        result = np.concatenate((result, np.sqrt(prediction)), axis=1)
+        result = np.concatenate((result, prediction ** 2), axis=1)
 
         self.log.info("transform x_data size: {0}".format(len(x_data)))
-        secondary_prediction = self.secondary_model.predict(x_data).reshape(-1, 1)
+        secondary_prediction = self.secondary_model.predict_proba(x_data)
         result = np.concatenate((result, secondary_prediction), axis=1)
+        result = np.concatenate((result, np.log(secondary_prediction)), axis=1)
+        result = np.concatenate((result, np.sqrt(secondary_prediction)), axis=1)
+        result = np.concatenate((result, secondary_prediction ** 2), axis=1)
 
         """
         additional_column = prediction ** 2
@@ -305,9 +324,9 @@ class CatboostModel:
         self.model = cb.CatBoost(catboost_parameters)
         self.log.info("inited")
 
-    def load_train_data(self, x_train, y_train, x_test, y_test):
+    def load_train_data(self, x_train, y_train):
         self.log.info("load x_train size: {0} y_train size: {1}".format(len(x_train), len(y_train)))
-        self.model.fit(x_train, y_train, eval_set=(x_test, y_test))
+        self.model.fit(x_train, y_train)
         self.log.info("loaded")
 
     def predict(self, x_to_predict):
@@ -420,9 +439,9 @@ class RegboostModel:
         )
         self.log.info("inited")
 
-    def load_train_data(self, x_train, y_train, x_test, y_test):
+    def load_train_data(self, x_train, y_train):
         self.log.info("load x_train size: {0} y_train size: {1}".format(len(x_train), len(y_train)))
-        self.model.fit(x_train, y_train, eval_set=(x_test, y_test))
+        self.model.fit(x_train, y_train)
         """
         self.log.info("loaded")
         for i in range(150):
@@ -443,7 +462,7 @@ class RegboostModel:
         sort_ind = np.argsort(prediction)
 
         for i in range(len(sort_ind)):
-            result[sort_ind[i]] = int(i / len(sort_ind) * 20)
+            result[sort_ind[i]] = int(i / len(sort_ind) * 21)
         return result
 
 """
@@ -509,14 +528,14 @@ config = json.loads("""
   "x_transformer": {
     "name": "catboost",
     "primary_model":{
-      "iterations": 1,
+      "iterations": 100,
       "depth": 10,
       "learning_rate": 0.3,
       "l2_leaf_reg":0.07,
       "loss_function": "RMSE"
     },
     "secondary_model":{
-      "iterations": 1,
+      "iterations": 100,
       "depth": 10,
       "learning_rate": 0.3,
       "l2_leaf_reg":0.07,
@@ -526,7 +545,7 @@ config = json.loads("""
   },
   "model": {
     "name": "regboost",
-    "iterations": 2,
+    "iterations": 200,
     "depth": 3,
     "learning_rate": 0.01,
     "l2_leaf_reg":3,
@@ -553,9 +572,7 @@ x_transformer.load_train_data(data_provider.x_train, data_provider.y_train)
 
 model.load_train_data(
         x_transformer.transform(data_provider.x_train),
-        data_provider.y_train,
-        x_transformer.transform(data_provider.x_test),
-        data_provider.y_test
+        data_provider.y_train
 )
 
 prediction = model.predict(x_transformer.transform(data_provider.x_test))
