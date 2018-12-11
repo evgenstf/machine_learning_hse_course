@@ -123,10 +123,8 @@ class DataProvider:
             for j in config["features_to_multiply"]:
                 if i == j:
                     continue
-                self.x_known = np.concatenate((self.x_known, (self.x_known[:, i] * self.x_known[:, j]).reshape(-1, 1)), axis=1)
                 self.x_known = np.concatenate((self.x_known, (np.log(self.x_known[:, i]) * np.log(self.x_known[:, j])).reshape(-1, 1)), axis=1)
 
-                self.x_to_predict = np.concatenate((self.x_to_predict, (self.x_to_predict[:, i] * self.x_to_predict[:, j]).reshape(-1, 1)), axis=1)
                 self.x_to_predict = np.concatenate((self.x_to_predict, (np.log(self.x_to_predict[:, i]) * np.log(self.x_to_predict[:, j])).reshape(-1, 1)), axis=1)
 
         self.log.info("loaded x_known rows: {0} columns: {1}".format(self.x_known.shape[0], self.x_known.shape[1]))
@@ -134,6 +132,9 @@ class DataProvider:
 
 
         self.split_known_data_to_train_and_test(config["train_part"])
+
+        del self.x_known
+        del self.y_known
 
         self.log.info("inited")
 
@@ -194,6 +195,7 @@ class CatboostXTransformer:
                 #bagging_temperature=self.config["bagging_temperature"],
                 depth=primary_config["depth"],
                 thread_count=19,
+                metric_period=10,
                 random_state=42
                 #one_hot_max_size=self.config["one_hot_max_size"]
         )
@@ -208,6 +210,7 @@ class CatboostXTransformer:
                 #bagging_temperature=self.config["bagging_temperature"],
                 depth=secondary_config["depth"],
                 thread_count=19,
+                metric_period=10,
                 random_state=42
                 #one_hot_max_size=self.config["one_hot_max_size"]
         )
@@ -215,27 +218,27 @@ class CatboostXTransformer:
 
     def load_train_data(self, x_train, y_train):
         self.log.info("load x_train size: {0} y_train size: {1}".format(len(x_train), len(y_train)))
-        self.log.info("start primary model")
-        self.model.fit(x_train, y_train)
-
         self.log.info("start secondary model")
         self.secondary_model.fit(x_train, y_train)
+
+        self.log.info("start primary model")
+        self.model.fit(x_train, y_train)
         self.log.info("loaded")
 
     def transform(self, x_data):
         self.log.info("transform x_data size: {0}".format(len(x_data)))
         prediction = self.model.predict(x_data).reshape(-1, 1)
-        result = np.concatenate((x_data, prediction), axis=1)
-        result = np.concatenate((result, np.log(prediction)), axis=1)
-        result = np.concatenate((result, np.sqrt(prediction)), axis=1)
-        result = np.concatenate((result, prediction ** 2), axis=1)
+        x_data = np.concatenate((x_data, prediction), axis=1)
+        x_data = np.concatenate((x_data, np.log(prediction)), axis=1)
+        #result = np.concatenate((result, np.sqrt(prediction)), axis=1)
+        #result = np.concatenate((result, prediction ** 2), axis=1)
 
         self.log.info("transform x_data size: {0}".format(len(x_data)))
         secondary_prediction = self.secondary_model.predict_proba(x_data)
-        result = np.concatenate((result, secondary_prediction), axis=1)
-        result = np.concatenate((result, np.log(secondary_prediction)), axis=1)
-        result = np.concatenate((result, np.sqrt(secondary_prediction)), axis=1)
-        result = np.concatenate((result, secondary_prediction ** 2), axis=1)
+        x_data = np.concatenate((x_data, secondary_prediction), axis=1)
+        x_data = np.concatenate((x_data, np.log(secondary_prediction)), axis=1)
+        x_data = np.concatenate((x_data, np.sqrt(secondary_prediction)), axis=1)
+        x_data = np.concatenate((x_data, secondary_prediction ** 2), axis=1)
 
         """
         additional_column = prediction ** 2
@@ -253,7 +256,7 @@ class CatboostXTransformer:
 
 
         self.log.info("transformed")
-        return result
+        return x_data
 
 #----------dummy_x_transformer----------
 
@@ -433,6 +436,7 @@ class RegboostModel:
                 learning_rate=self.config["learning_rate"],
                 depth=self.config["depth"],
                 #bagging_temperature=self.config["bagging_temperature"],
+                metric_period=10,
                 thread_count=19,
                 random_state=42
                 #one_hot_max_size=self.config["one_hot_max_size"]
@@ -520,7 +524,7 @@ config = json.loads("""
     "x_known": "../input/x_train_{i}.npz",
     "y_known": "../input/y_train.npz",
     "x_to_predict": "../input/x_test.npz",
-    "max_file_index": 1,
+    "max_file_index": 4,
     "known_using_part" : 1,
     "train_part" : 0.9,
     "features_to_multiply": [16, 47, 69, 70, 102, 135]
@@ -528,14 +532,14 @@ config = json.loads("""
   "x_transformer": {
     "name": "catboost",
     "primary_model":{
-      "iterations": 100,
+      "iterations": 10,
       "depth": 10,
       "learning_rate": 0.3,
       "l2_leaf_reg":0.07,
       "loss_function": "RMSE"
     },
     "secondary_model":{
-      "iterations": 100,
+      "iterations": 10,
       "depth": 10,
       "learning_rate": 0.3,
       "l2_leaf_reg":0.07,
@@ -545,7 +549,7 @@ config = json.loads("""
   },
   "model": {
     "name": "regboost",
-    "iterations": 200,
+    "iterations": 20,
     "depth": 3,
     "learning_rate": 0.01,
     "l2_leaf_reg":3,
@@ -570,19 +574,34 @@ model = model_by_config(config)
 
 x_transformer.load_train_data(data_provider.x_train, data_provider.y_train)
 
+x_train_transformed = x_transformer.transform(data_provider.x_train)
+del data_provider.x_train
+x_test_transformed = x_transformer.transform(data_provider.x_test)
+del data_provider.x_test
+x_to_predict_transformed = x_transformer.transform(data_provider.x_to_predict)
+del data_provider.x_to_predict
+
+del x_transformer
+
 model.load_train_data(
-        x_transformer.transform(data_provider.x_train),
+        x_train_transformed,
         data_provider.y_train
 )
 
-prediction = model.predict(x_transformer.transform(data_provider.x_test))
+del x_train_transformed
+del data_provider.y_train
+
+prediction = model.predict(x_test_transformed)
 
 #print("prediction:", prediction)
-print("score:", spearmanr(prediction, data_provider.y_test)[0])
+score = spearmanr(prediction, data_provider.y_test)[0]
+print("score:", score)
+score_file = open("%s" % score, 'w')
+score_file.write("%s" % score)
 
 
 if (config["predict_answer"]):
-    prediction = model.predict(x_transformer.transform(data_provider.x_to_predict))
+    prediction = model.predict(x_to_predict_transformed)
     log.info("flush result to {0}".format(config["answer_file"]))
     answer_file = open(config["answer_file"], 'w')
     answer_file.write("Id,Label\n")

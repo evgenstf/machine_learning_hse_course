@@ -26,6 +26,7 @@ class CatboostXTransformer:
                 #bagging_temperature=self.config["bagging_temperature"],
                 depth=primary_config["depth"],
                 thread_count=19,
+                metric_period=10,
                 random_state=42
                 #one_hot_max_size=self.config["one_hot_max_size"]
         )
@@ -40,6 +41,7 @@ class CatboostXTransformer:
                 #bagging_temperature=self.config["bagging_temperature"],
                 depth=secondary_config["depth"],
                 thread_count=19,
+                metric_period=10,
                 random_state=42
                 #one_hot_max_size=self.config["one_hot_max_size"]
         )
@@ -47,27 +49,27 @@ class CatboostXTransformer:
 
     def load_train_data(self, x_train, y_train):
         self.log.info("load x_train size: {0} y_train size: {1}".format(len(x_train), len(y_train)))
-        self.log.info("start primary model")
-        self.model.fit(x_train, y_train)
-
         self.log.info("start secondary model")
         self.secondary_model.fit(x_train, y_train)
+
+        self.log.info("start primary model")
+        self.model.fit(x_train, y_train)
         self.log.info("loaded")
 
     def transform(self, x_data):
         self.log.info("transform x_data size: {0}".format(len(x_data)))
         prediction = self.model.predict(x_data).reshape(-1, 1)
-        result = np.concatenate((x_data, prediction), axis=1)
-        result = np.concatenate((result, np.log(prediction)), axis=1)
+        x_data = np.concatenate((x_data, prediction), axis=1)
+        x_data = np.concatenate((x_data, np.log(prediction)), axis=1)
         #result = np.concatenate((result, np.sqrt(prediction)), axis=1)
         #result = np.concatenate((result, prediction ** 2), axis=1)
 
         self.log.info("transform x_data size: {0}".format(len(x_data)))
         secondary_prediction = self.secondary_model.predict_proba(x_data)
-        result = np.concatenate((result, secondary_prediction), axis=1)
-        result = np.concatenate((result, np.log(secondary_prediction)), axis=1)
-        result = np.concatenate((result, np.sqrt(secondary_prediction)), axis=1)
-        result = np.concatenate((result, secondary_prediction ** 2), axis=1)
+        x_data = np.concatenate((x_data, secondary_prediction), axis=1)
+        x_data = np.concatenate((x_data, np.log(secondary_prediction)), axis=1)
+        x_data = np.concatenate((x_data, np.sqrt(secondary_prediction)), axis=1)
+        x_data = np.concatenate((x_data, secondary_prediction ** 2), axis=1)
 
         """
         additional_column = prediction ** 2
@@ -85,4 +87,4 @@ class CatboostXTransformer:
 
 
         self.log.info("transformed")
-        return result
+        return x_data

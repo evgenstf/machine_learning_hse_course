@@ -29,12 +29,24 @@ model = model_by_config(config)
 
 x_transformer.load_train_data(data_provider.x_train, data_provider.y_train)
 
+x_train_transformed = x_transformer.transform(data_provider.x_train)
+del data_provider.x_train
+x_test_transformed = x_transformer.transform(data_provider.x_test)
+del data_provider.x_test
+x_to_predict_transformed = x_transformer.transform(data_provider.x_to_predict)
+del data_provider.x_to_predict
+
+del x_transformer
+
 model.load_train_data(
-        x_transformer.transform(data_provider.x_train),
+        x_train_transformed,
         data_provider.y_train
 )
 
-prediction = model.predict(x_transformer.transform(data_provider.x_test))
+del x_train_transformed
+del data_provider.y_train
+
+prediction = model.predict(x_test_transformed)
 
 #print("prediction:", prediction)
 score = spearmanr(prediction, data_provider.y_test)[0]
@@ -44,7 +56,7 @@ score_file.write("%s" % score)
 
 
 if (config["predict_answer"]):
-    prediction = model.predict(x_transformer.transform(data_provider.x_to_predict))
+    prediction = model.predict(x_to_predict_transformed)
     log.info("flush result to {0}".format(config["answer_file"]))
     answer_file = open(config["answer_file"], 'w')
     answer_file.write("Id,Label\n")

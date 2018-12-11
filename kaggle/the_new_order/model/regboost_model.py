@@ -23,6 +23,7 @@ class RegboostModel:
                 learning_rate=self.config["learning_rate"],
                 depth=self.config["depth"],
                 #bagging_temperature=self.config["bagging_temperature"],
+                metric_period=10,
                 thread_count=19,
                 random_state=42
                 #one_hot_max_size=self.config["one_hot_max_size"]

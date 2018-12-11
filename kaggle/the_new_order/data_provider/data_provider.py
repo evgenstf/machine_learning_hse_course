@@ -77,6 +77,9 @@ class DataProvider:
 
         self.split_known_data_to_train_and_test(config["train_part"])
 
+        del self.x_known
+        del self.y_known
+
         self.log.info("inited")
 
     def split_known_data_to_train_and_test(self, train_part):
