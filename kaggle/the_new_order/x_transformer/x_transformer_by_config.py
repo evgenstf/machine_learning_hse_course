@@ -5,17 +5,18 @@ from common import *
 from dummy_x_transformer import *
 from super_x_transformer import *
 from catboost_x_transformer import *
-
+from regboost_x_transformer import *
 
 #----------x_transformer_by_config----------
 
 def x_transformer_by_config(config):
-    x_transormer_config = config["x_transformer"]
-    name = x_transormer_config["name"]
+    name = config["name"]
     if (name == "dummy"):
-        return DummyXTransformer(x_transormer_config)
+        return DummyXTransformer(config)
     if (name == "super"):
-        return SuperXTransformer(x_transormer_config)
+        return SuperXTransformer(config)
     if (name == "catboost"):
-        return CatboostXTransformer(x_transormer_config)
+        return CatboostXTransformer(config)
+    if (name == "regboost"):
+        return RegboostXTransformer(config)
     logging.fatal("unknown x transformer name: {0}".format(name))

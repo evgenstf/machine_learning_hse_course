@@ -24,20 +24,30 @@ log = logging.getLogger("Launcher")
 log.info("launcher config: {0}".format(config))
 
 data_provider = DataProvider(config["data_provider"])
-x_transformer = x_transformer_by_config(config)
-model = model_by_config(config)
 
-x_transformer.load_train_data(data_provider.x_train, data_provider.y_train)
+primary_x_transformer = x_transformer_by_config(config["primary_x_transformer"])
+primary_x_transformer.load_train_data(data_provider.x_train, data_provider.y_train)
 
-x_train_transformed = x_transformer.transform(data_provider.x_train)
+x_train_transformed = primary_x_transformer.transform(data_provider.x_train)
 del data_provider.x_train
-x_test_transformed = x_transformer.transform(data_provider.x_test)
+x_test_transformed = primary_x_transformer.transform(data_provider.x_test)
 del data_provider.x_test
-x_to_predict_transformed = x_transformer.transform(data_provider.x_to_predict)
+x_to_predict_transformed = primary_x_transformer.transform(data_provider.x_to_predict)
 del data_provider.x_to_predict
 
-del x_transformer
+del primary_x_transformer
 
+
+secondary_x_transformer = x_transformer_by_config(config["secondary_x_transformer"])
+secondary_x_transformer.load_train_data(x_train_transformed, data_provider.y_train)
+
+x_train_transformed = secondary_x_transformer.transform(x_train_transformed)
+x_test_transformed = secondary_x_transformer.transform(x_test_transformed)
+x_to_predict_transformed = secondary_x_transformer.transform(x_to_predict_transformed)
+
+del secondary_x_transformer
+
+model = model_by_config(config)
 model.load_train_data(
         x_train_transformed,
         data_provider.y_train

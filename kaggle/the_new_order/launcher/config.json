@@ -5,38 +5,39 @@
     "x_to_predict": "../input/x_test.npz",
     "max_file_index": 1,
     "known_using_part" : 1,
-    "train_part" : 0.9,
-    "features_to_multiply": [16, 47, 69, 70, 102, 135]
+    "train_part" : 0.999999999999,
+    "features_to_multiply": [16, 47, 69, 70, 102, 135],
+    "features_to_throw": [9, 18, 90, 103, 109, 122]
   },
-  "x_transformer": {
-    "name": "catboost",
-    "primary_model":{
-      "iterations": 100,
-      "depth": 10,
-      "learning_rate": 0.3,
-      "l2_leaf_reg":0.07,
-      "loss_function": "RMSE"
-    },
-    "secondary_model":{
-      "iterations": 100,
-      "depth": 10,
-      "learning_rate": 0.3,
-      "l2_leaf_reg":0.07,
-      "loss_function": "MultiClassOneVsAll",
-      "classes_count": 5
-    }
+  "primary_x_transformer": {
+    "name": "dummy",
+    "iterations": 10,
+    "depth": 10,
+    "learning_rate": 0.3,
+    "l2_leaf_reg":0.07,
+    "loss_function": "RMSE"
+  },
+  "secondary_x_transformer": {
+    "name": "dummy",
+    "iterations": 10,
+    "depth": 10,
+    "learning_rate": 0.3,
+    "l2_leaf_reg":0.07,
+    "loss_function": "MultiClassOneVsAll",
+    "classes_count": 5
   },
   "model": {
     "name": "regboost",
-    "iterations": 200,
-    "depth": 3,
-    "learning_rate": 0.01,
-    "l2_leaf_reg":3,
+    "iterations": 5,
+    "depth": 8,
+    "learning_rate": 0.1,
+    "l2_leaf_reg":0.7,
     "loss_function": "RMSE",
     "classes_count": 5
   },
   "predict_answer": true,
   "answer_file": "answer.csv",
 
+  "features_to_throw": [9, 18, 90, 103, 109, 122],
   "using_features": [3, 5, 6, 7, 13, 16, 19, 23, 29, 31, 34, 38, 40, 44, 53, 56, 57, 69, 70, 72, 76, 88, 89, 95, 101, 102, 106, 127, 130, 131, 146]
 }

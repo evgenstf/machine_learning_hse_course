@@ -119,6 +119,7 @@ class DataProvider:
             """
 
 
+        """
         for i in config["features_to_multiply"]:
             for j in config["features_to_multiply"]:
                 if i == j:
@@ -130,6 +131,10 @@ class DataProvider:
         self.log.info("loaded x_known rows: {0} columns: {1}".format(self.x_known.shape[0], self.x_known.shape[1]))
         self.log.info("loaded x_to_predict rows: {0} columns: {1}".format(self.x_to_predict.shape[0], self.x_to_predict.shape[1]))
 
+        """
+        for i in config["features_to_throw"]:
+            self.x_known = np.delete(self.x_known, i, 1)
+            self.x_to_predict = np.delete(self.x_to_predict, i, 1)
 
         self.split_known_data_to_train_and_test(config["train_part"])
 
@@ -184,31 +189,15 @@ class CatboostXTransformer:
         self.log = logging.getLogger("CatboostXTransformer")
         self.log.info("x_transformer config: {0}".format(config))
         self.config = config
-        primary_config = config["primary_model"]
-        self.model = cb.CatBoostRegressor(
-                #logging_level="Silent",
-                loss_function=primary_config["loss_function"],
-                #classes_count=self.config["classes_count"],
-                iterations=primary_config["iterations"],
-                l2_leaf_reg=primary_config["l2_leaf_reg"],
-                learning_rate=primary_config["learning_rate"],
-                #bagging_temperature=self.config["bagging_temperature"],
-                depth=primary_config["depth"],
-                thread_count=19,
-                metric_period=10,
-                random_state=42
-                #one_hot_max_size=self.config["one_hot_max_size"]
-        )
-        secondary_config = config["secondary_model"]
-        self.secondary_model = cb.CatBoostClassifier(
+        self.model = cb.CatBoostClassifier(
                 #logging_level="Silent",
                 loss_function="MultiClassOneVsAll",
-                classes_count=secondary_config["classes_count"],
-                iterations=secondary_config["iterations"],
-                l2_leaf_reg=secondary_config["l2_leaf_reg"],
-                learning_rate=secondary_config["learning_rate"],
+                classes_count=config["classes_count"],
+                iterations=config["iterations"],
+                l2_leaf_reg=config["l2_leaf_reg"],
+                learning_rate=config["learning_rate"],
                 #bagging_temperature=self.config["bagging_temperature"],
-                depth=secondary_config["depth"],
+                depth=config["depth"],
                 thread_count=19,
                 metric_period=10,
                 random_state=42
@@ -218,43 +207,16 @@ class CatboostXTransformer:
 
     def load_train_data(self, x_train, y_train):
         self.log.info("load x_train size: {0} y_train size: {1}".format(len(x_train), len(y_train)))
-        self.log.info("start secondary model")
-        self.secondary_model.fit(x_train, y_train)
-
-        self.log.info("start primary model")
         self.model.fit(x_train, y_train)
         self.log.info("loaded")
 
     def transform(self, x_data):
         self.log.info("transform x_data size: {0}".format(len(x_data)))
-        prediction = self.model.predict(x_data).reshape(-1, 1)
+        prediction = self.model.predict_proba(x_data)
         x_data = np.concatenate((x_data, prediction), axis=1)
         x_data = np.concatenate((x_data, np.log(prediction)), axis=1)
-        #result = np.concatenate((result, np.sqrt(prediction)), axis=1)
-        #result = np.concatenate((result, prediction ** 2), axis=1)
-
-        self.log.info("transform x_data size: {0}".format(len(x_data)))
-        secondary_prediction = self.secondary_model.predict_proba(x_data)
-        x_data = np.concatenate((x_data, secondary_prediction), axis=1)
-        x_data = np.concatenate((x_data, np.log(secondary_prediction)), axis=1)
-        x_data = np.concatenate((x_data, np.sqrt(secondary_prediction)), axis=1)
-        x_data = np.concatenate((x_data, secondary_prediction ** 2), axis=1)
-
-        """
-        additional_column = prediction ** 2
-        result = np.concatenate((result, additional_column.reshape(-1, 1)), axis=1)
-
-        additional_column = prediction ** 3
-        result = np.concatenate((result, additional_column.reshape(-1, 1)), axis=1)
-
-        additional_column = prediction ** 0.5
-        result = np.concatenate((result, additional_column.reshape(-1, 1)), axis=1)
-
-        additional_column = prediction ** 0.25
-        result = np.concatenate((result, additional_column.reshape(-1, 1)), axis=1)
-        """
-
-
+        x_data = np.concatenate((x_data, np.sqrt(prediction)), axis=1)
+        x_data = np.concatenate((x_data, prediction ** 2), axis=1)
         self.log.info("transformed")
         return x_data
 
@@ -278,6 +240,44 @@ class DummyXTransformer:
         result = x_data
         self.log.info("transformed")
         return result
+
+#----------regboost_x_transformer----------
+
+class RegboostXTransformer:
+    def __init__(self, config):
+        self.log = logging.getLogger("RegboostXTransformer")
+        self.log.info("x_transformer config: {0}".format(config))
+        self.config = config
+        self.model = cb.CatBoostRegressor(
+                #logging_level="Silent",
+                loss_function=config["loss_function"],
+                #classes_count=self.config["classes_count"],
+                iterations=config["iterations"],
+                l2_leaf_reg=config["l2_leaf_reg"],
+                learning_rate=config["learning_rate"],
+                #bagging_temperature=self.config["bagging_temperature"],
+                depth=config["depth"],
+                thread_count=19,
+                metric_period=10,
+                random_state=42
+                #one_hot_max_size=self.config["one_hot_max_size"]
+        )
+        self.log.info("inited")
+
+    def load_train_data(self, x_train, y_train):
+        self.log.info("load x_train size: {0} y_train size: {1}".format(len(x_train), len(y_train)))
+        self.model.fit(x_train, y_train)
+        self.log.info("loaded")
+
+    def transform(self, x_data):
+        self.log.info("transform x_data size: {0}".format(len(x_data)))
+        prediction = self.model.predict(x_data).reshape(-1, 1)
+        x_data = np.concatenate((x_data, prediction), axis=1)
+        x_data = np.concatenate((x_data, np.log(prediction)), axis=1)
+        #result = np.concatenate((result, np.sqrt(prediction)), axis=1)
+        #result = np.concatenate((result, prediction ** 2), axis=1)
+        self.log.info("transformed")
+        return x_data
 #----------dummy_x_transformer----------
 
 class SuperXTransformer:
@@ -301,14 +301,15 @@ class SuperXTransformer:
 #----------x_transformer_by_config----------
 
 def x_transformer_by_config(config):
-    x_transormer_config = config["x_transformer"]
-    name = x_transormer_config["name"]
+    name = config["name"]
     if (name == "dummy"):
-        return DummyXTransformer(x_transormer_config)
+        return DummyXTransformer(config)
     if (name == "super"):
-        return SuperXTransformer(x_transormer_config)
+        return SuperXTransformer(config)
     if (name == "catboost"):
-        return CatboostXTransformer(x_transormer_config)
+        return CatboostXTransformer(config)
+    if (name == "regboost"):
+        return RegboostXTransformer(config)
     logging.fatal("unknown x transformer name: {0}".format(name))
 #----------catboost_model----------
 
@@ -524,41 +525,42 @@ config = json.loads("""
     "x_known": "../input/x_train_{i}.npz",
     "y_known": "../input/y_train.npz",
     "x_to_predict": "../input/x_test.npz",
-    "max_file_index": 4,
+    "max_file_index": 1,
     "known_using_part" : 1,
     "train_part" : 0.9,
-    "features_to_multiply": [16, 47, 69, 70, 102, 135]
+    "features_to_multiply": [16, 47, 69, 70, 102, 135],
+    "features_to_throw": [9, 18, 90, 103, 109, 122]
   },
-  "x_transformer": {
-    "name": "catboost",
-    "primary_model":{
-      "iterations": 10,
-      "depth": 10,
-      "learning_rate": 0.3,
-      "l2_leaf_reg":0.07,
-      "loss_function": "RMSE"
-    },
-    "secondary_model":{
-      "iterations": 10,
-      "depth": 10,
-      "learning_rate": 0.3,
-      "l2_leaf_reg":0.07,
-      "loss_function": "MultiClassOneVsAll",
-      "classes_count": 5
-    }
+  "primary_x_transformer": {
+    "name": "dummy",
+    "iterations": 10,
+    "depth": 10,
+    "learning_rate": 0.3,
+    "l2_leaf_reg":0.07,
+    "loss_function": "RMSE"
+  },
+  "secondary_x_transformer": {
+    "name": "dummy",
+    "iterations": 10,
+    "depth": 10,
+    "learning_rate": 0.3,
+    "l2_leaf_reg":0.07,
+    "loss_function": "MultiClassOneVsAll",
+    "classes_count": 5
   },
   "model": {
     "name": "regboost",
-    "iterations": 20,
-    "depth": 3,
-    "learning_rate": 0.01,
-    "l2_leaf_reg":3,
+    "iterations": 5,
+    "depth": 8,
+    "learning_rate": 0.1,
+    "l2_leaf_reg":0.7,
     "loss_function": "RMSE",
     "classes_count": 5
   },
   "predict_answer": true,
   "answer_file": "answer.csv",
 
+  "features_to_throw": [9, 18, 90, 103, 109, 122],
   "using_features": [3, 5, 6, 7, 13, 16, 19, 23, 29, 31, 34, 38, 40, 44, 53, 56, 57, 69, 70, 72, 76, 88, 89, 95, 101, 102, 106, 127, 130, 131, 146]
 }
 """)
@@ -569,20 +571,30 @@ log = logging.getLogger("Launcher")
 log.info("launcher config: {0}".format(config))
 
 data_provider = DataProvider(config["data_provider"])
-x_transformer = x_transformer_by_config(config)
-model = model_by_config(config)
 
-x_transformer.load_train_data(data_provider.x_train, data_provider.y_train)
+primary_x_transformer = x_transformer_by_config(config["primary_x_transformer"])
+primary_x_transformer.load_train_data(data_provider.x_train, data_provider.y_train)
 
-x_train_transformed = x_transformer.transform(data_provider.x_train)
+x_train_transformed = primary_x_transformer.transform(data_provider.x_train)
 del data_provider.x_train
-x_test_transformed = x_transformer.transform(data_provider.x_test)
+x_test_transformed = primary_x_transformer.transform(data_provider.x_test)
 del data_provider.x_test
-x_to_predict_transformed = x_transformer.transform(data_provider.x_to_predict)
+x_to_predict_transformed = primary_x_transformer.transform(data_provider.x_to_predict)
 del data_provider.x_to_predict
 
-del x_transformer
+del primary_x_transformer
 
+
+secondary_x_transformer = x_transformer_by_config(config["secondary_x_transformer"])
+secondary_x_transformer.load_train_data(x_train_transformed, data_provider.y_train)
+
+x_train_transformed = secondary_x_transformer.transform(x_train_transformed)
+x_test_transformed = secondary_x_transformer.transform(x_test_transformed)
+x_to_predict_transformed = secondary_x_transformer.transform(x_to_predict_transformed)
+
+del secondary_x_transformer
+
+model = model_by_config(config)
 model.load_train_data(
         x_train_transformed,
         data_provider.y_train
