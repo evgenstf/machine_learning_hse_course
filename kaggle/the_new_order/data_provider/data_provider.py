@@ -76,9 +76,8 @@ class DataProvider:
         self.log.info("loaded x_to_predict rows: {0} columns: {1}".format(self.x_to_predict.shape[0], self.x_to_predict.shape[1]))
 
         """
-        for i in config["features_to_throw"]:
-            self.x_known = np.delete(self.x_known, i, 1)
-            self.x_to_predict = np.delete(self.x_to_predict, i, 1)
+        self.x_known = np.delete(self.x_known, config["features_to_throw"], 1)
+        self.x_to_predict = np.delete(self.x_to_predict, config["features_to_throw"], 1)
 
         self.split_known_data_to_train_and_test(config["train_part"])
 

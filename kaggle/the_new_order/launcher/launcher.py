@@ -50,7 +50,9 @@ del secondary_x_transformer
 model = model_by_config(config)
 model.load_train_data(
         x_train_transformed,
-        data_provider.y_train
+        data_provider.y_train,
+        x_test_transformed,
+        data_provider.y_test
 )
 
 del x_train_transformed

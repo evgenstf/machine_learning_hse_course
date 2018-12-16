@@ -25,16 +25,20 @@ class RegboostModel:
                 #bagging_temperature=self.config["bagging_temperature"],
                 metric_period=10,
                 thread_count=19,
-                random_state=42
+                random_state=42,
+                border_count=100,
+                fold_len_multiplier = 1.01,
+                bootstrap_type="Poisson"
+                #one_hot_max_size=10
                 #one_hot_max_size=self.config["one_hot_max_size"]
         )
         self.log.info("inited")
 
-    def load_train_data(self, x_train, y_train):
+    def load_train_data(self, x_train, y_train, x_test, y_test):
         self.log.info("load x_train size: {0} y_train size: {1}".format(len(x_train), len(y_train)))
-        self.model.fit(x_train, y_train)
-        """
+        self.model.fit(x_train, y_train, eval_set=(x_test, y_test))
         self.log.info("loaded")
+        """
         for i in range(150):
             print(i, self.model.feature_importances_[i])
         exit()

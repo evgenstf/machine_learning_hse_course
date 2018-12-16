@@ -132,9 +132,8 @@ class DataProvider:
         self.log.info("loaded x_to_predict rows: {0} columns: {1}".format(self.x_to_predict.shape[0], self.x_to_predict.shape[1]))
 
         """
-        for i in config["features_to_throw"]:
-            self.x_known = np.delete(self.x_known, i, 1)
-            self.x_to_predict = np.delete(self.x_to_predict, i, 1)
+        self.x_known = np.delete(self.x_known, config["features_to_throw"], 1)
+        self.x_to_predict = np.delete(self.x_to_predict, config["features_to_throw"], 1)
 
         self.split_known_data_to_train_and_test(config["train_part"])
 
@@ -439,16 +438,19 @@ class RegboostModel:
                 #bagging_temperature=self.config["bagging_temperature"],
                 metric_period=10,
                 thread_count=19,
-                random_state=42
+                random_state=42,
+                border_count=100,
+                fold_len_multiplier = 1.01
+                #one_hot_max_size=10
                 #one_hot_max_size=self.config["one_hot_max_size"]
         )
         self.log.info("inited")
 
-    def load_train_data(self, x_train, y_train):
+    def load_train_data(self, x_train, y_train, x_test, y_test):
         self.log.info("load x_train size: {0} y_train size: {1}".format(len(x_train), len(y_train)))
-        self.model.fit(x_train, y_train)
-        """
+        self.model.fit(x_train, y_train, eval_set=(x_test, y_test))
         self.log.info("loaded")
+        """
         for i in range(150):
             print(i, self.model.feature_importances_[i])
         exit()
@@ -525,7 +527,7 @@ config = json.loads("""
     "x_known": "../input/x_train_{i}.npz",
     "y_known": "../input/y_train.npz",
     "x_to_predict": "../input/x_test.npz",
-    "max_file_index": 1,
+    "max_file_index": 4,
     "known_using_part" : 1,
     "train_part" : 0.9,
     "features_to_multiply": [16, 47, 69, 70, 102, 135],
@@ -533,7 +535,7 @@ config = json.loads("""
   },
   "primary_x_transformer": {
     "name": "dummy",
-    "iterations": 10,
+    "iterations": 100,
     "depth": 10,
     "learning_rate": 0.3,
     "l2_leaf_reg":0.07,
@@ -550,10 +552,10 @@ config = json.loads("""
   },
   "model": {
     "name": "regboost",
-    "iterations": 5,
+    "iterations": 10,
     "depth": 8,
-    "learning_rate": 0.1,
-    "l2_leaf_reg":0.7,
+    "learning_rate": 0.2,
+    "l2_leaf_reg":0.07,
     "loss_function": "RMSE",
     "classes_count": 5
   },
@@ -561,7 +563,11 @@ config = json.loads("""
   "answer_file": "answer.csv",
 
   "features_to_throw": [9, 18, 90, 103, 109, 122],
-  "using_features": [3, 5, 6, 7, 13, 16, 19, 23, 29, 31, 34, 38, 40, 44, 53, 56, 57, 69, 70, 72, 76, 88, 89, 95, 101, 102, 106, 127, 130, 131, 146]
+  "categorial_features": [3, 5, 10, 12, 14, 16, 23, 25, 27, 30, 32,
+    35, 36, 40, 43, 45, 47, 52, 53, 56, 61, 65,
+    66, 69, 73, 81, 84, 86, 89, 94, 96, 97, 98,
+    101, 102, 105, 111, 114, 125, 128, 131, 133, 147],
+    "using_features": [3, 5, 6, 7, 13, 16, 19, 23, 29, 31, 34, 38, 40, 44, 53, 56, 57, 69, 70, 72, 76, 88, 89, 95, 101, 102, 106, 127, 130, 131, 146]
 }
 """)
 #----------launcher----------
@@ -597,7 +603,9 @@ del secondary_x_transformer
 model = model_by_config(config)
 model.load_train_data(
         x_train_transformed,
-        data_provider.y_train
+        data_provider.y_train,
+        x_test_transformed,
+        data_provider.y_test
 )
 
 del x_train_transformed
